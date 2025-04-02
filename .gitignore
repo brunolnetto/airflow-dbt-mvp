@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# dbt
+dbt/logs/
+dbt/target/
+dbt/.dbt/
+
+# Airflow
+airflow/logs/
+airflow/tmp/
+*.pid
+
+# Docker
+*.log
