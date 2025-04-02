@@ -7,11 +7,11 @@ This project extracts data from the SpaceX API, loads it into GCS, moves it to B
 
 # Airflow Web UI
 
-![alt text](image.png)
+![alt text](airflow-web-ui.png)
 
 ## GCP Cloud Run Job Scheduler 
 
-![alt text](image-1.png)
+![alt text](cloud-run-job.png)
 
 ## 🛠️ Tech Stack Summary
 - **Languages & Tools:** Python, dbt, Docker, Airflow
