@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+
+  airflow-webserver:
+    build: .
+    container_name: airflow-webserver
+    restart: always
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./api:/opt/airflow/api
+      - ./dbt:/opt/airflow/dbt
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    command: webserver
+
+  airflow-scheduler:
+    build: .
+    container_name: airflow-scheduler
+    restart: always
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./api:/opt/airflow/api
+      - ./dbt:/opt/airflow/dbt
+    depends_on:
+      - postgres
+    command: scheduler
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+volumes:
+  postgres-db-volume:
