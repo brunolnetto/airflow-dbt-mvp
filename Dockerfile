@@ -1,12 +1,12 @@
 FROM apache/airflow:2.7.2-python3.10
 
-USER airflow
-
-# Install required packages in the airflow user's environment
-RUN pip install --no-cache-dir \
-    dbt-bigquery \
-    google-cloud-storage \
-    pandas \
-    requests
-
+USER root
 WORKDIR /opt/airflow
+
+COPY dags/ /opt/airflow/dags/
+COPY api/  /opt/airflow/api/
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+USER airflow
+ENTRYPOINT ["/entrypoint.sh"]

@@ -1,0 +1,12 @@
+spacex_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: service-account
+      project: spacex-data-pipeline
+      dataset: raw
+      threads: 2
+      timeout_seconds: 300
+      keyfile: "/opt/airflow/secrets/spacex-ingestor-key.json"
+      priority: interactive

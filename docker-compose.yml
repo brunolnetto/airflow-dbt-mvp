@@ -7,14 +7,18 @@ services:
     container_name: airflow-webserver
     restart: always
     environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'my-unified-secret-key'
+      GOOGLE_APPLICATION_CREDENTIALS: "/opt/airflow/secrets/spacex-ingestor-key.json"
+      DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./api:/opt/airflow/api
       - ./dbt:/opt/airflow/dbt
+      - ./secrets:/opt/airflow/secrets
+      - ./dbt_profiles:/opt/airflow/dbt_profiles
     ports:
       - "8080:8080"
     depends_on:
@@ -26,12 +30,16 @@ services:
     container_name: airflow-scheduler
     restart: always
     environment:
-      AIRFLOW__CORE__EXECUTOR: LocalExecutor
-      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__WEBSERVER__SECRET_KEY: 'my-unified-secret-key'
+      GOOGLE_APPLICATION_CREDENTIALS: "/opt/airflow/secrets/spacex-ingestor-key.json"
+      DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
     volumes:
       - ./dags:/opt/airflow/dags
       - ./api:/opt/airflow/api
       - ./dbt:/opt/airflow/dbt
+      - ./secrets:/opt/airflow/secrets
+      - ./dbt_profiles:/opt/airflow/dbt_profiles
     depends_on:
       - postgres
     command: scheduler

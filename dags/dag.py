@@ -15,7 +15,7 @@ default_args = {
 }
 
 dag = DAG(
-    dag_id='spacex_etl_pipeline',
+    dag_id='spacex_dag',
     default_args=default_args,
     description='End-to-end SpaceX ETL pipeline using Python + dbt',
     schedule_interval='@daily',
@@ -53,7 +53,7 @@ dbt_run = BashOperator(
     bash_command=f"""
         cd {DBT_PATH} &&
         dbt deps &&
-        dbt run --full-refresh
+        dbt run
     """,
     dag=dag,
 )

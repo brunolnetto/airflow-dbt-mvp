@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: raw
+    database: spacex-data-pipeline
+    schema: raw
+    tables:
+      - name: spacex_launches

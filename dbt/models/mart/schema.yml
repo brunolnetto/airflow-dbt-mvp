@@ -1,0 +1,22 @@
+version: 2
+
+models:
+  - name: launch_metrics
+    description: "Aggregated metrics for SpaceX launches, grouped by year."
+    columns:
+      - name: launch_year
+        description: "The year in which launches occurred."
+        tests:
+          - not_null
+      - name: total_launches
+        description: "The total number of launches in that year."
+        tests:
+          - not_null
+      - name: successful_launches
+        description: "The number of successful launches in that year."
+        tests:
+          - not_null
+      - name: success_rate_pct
+        description: "The percentage of successful launches in that year."
+        tests:
+          - not_null
