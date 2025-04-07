@@ -16,10 +16,6 @@ COPY . .
 RUN mkdir -p /opt/airflow/dbt_profiles && \
     chown -R airflow: /opt/airflow
 
-USER root
-RUN pip install --no-cache-dir \
-    dbt-core dbt-postgres apache-airflow 
-
 USER airflow
 WORKDIR /opt/airflow
 

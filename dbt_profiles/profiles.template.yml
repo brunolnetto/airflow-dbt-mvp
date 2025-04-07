@@ -1,4 +1,4 @@
-example-airflow-dbt:
+spacex_dbt:
   target: dev
   outputs:
     dev:
