@@ -1,0 +1,12 @@
+example-airflow-dbt:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: ${POSTGRES_HOST}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      port: ${POSTGRES_PORT}
+      dbname: ${POSTGRES_DB}
+      schema: ${DBT_SCHEMA}
+      retries: 3

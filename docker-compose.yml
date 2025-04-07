@@ -1,57 +1,81 @@
-version: '3.8'
+  services:
+    postgres:
+      image: postgres:13
+      container_name: postgres
+      restart: unless-stopped
+      env_file:
+        - .env
+      environment:
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      volumes:
+        - postgres-db-volume:/var/lib/postgresql/data
 
-services:
+    airflow-init:
+      build: .
+      container_name: airflow-init
+      env_file:
+        - .env
+      environment:
+        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+        AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
+        AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
+        DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
+      volumes:
+        - ./dags:${AIRFLOW_HOME}/dags
+        - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt_profiles:${AIRFLOW_HOME}/dbt_profiles
+        - ./entrypoint.sh:/entrypoint.sh
+      entrypoint: ["/bin/bash", "/entrypoint.sh"]
+      depends_on:
+        - postgres
 
-  airflow-webserver:
-    build: .
-    container_name: airflow-webserver
-    restart: always
-    environment:
-      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
-      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: 'my-unified-secret-key'
-      GOOGLE_APPLICATION_CREDENTIALS: "/opt/airflow/secrets/spacex-ingestor-key.json"
-      DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./api:/opt/airflow/api
-      - ./dbt:/opt/airflow/dbt
-      - ./secrets:/opt/airflow/secrets
-      - ./dbt_profiles:/opt/airflow/dbt_profiles
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    command: webserver
+    airflow-webserver:
+      build: .
+      container_name: airflow-webserver
+      restart: unless-stopped
+      env_file:
+        - .env
+      environment:
+        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+        AIRFLOW__CORE__EXECUTOR: LocalExecutor
+        AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
+        AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+        AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
+        DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
+      volumes:
+        - ./dags:${AIRFLOW_HOME}/dags
+        - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt_profiles:${AIRFLOW_HOME}/dbt_profiles
+      ports:
+        - "8080:8080"
+      depends_on:
+        - postgres
+      command: webserver
 
-  airflow-scheduler:
-    build: .
-    container_name: airflow-scheduler
-    restart: always
-    environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__WEBSERVER__SECRET_KEY: 'my-unified-secret-key'
-      GOOGLE_APPLICATION_CREDENTIALS: "/opt/airflow/secrets/spacex-ingestor-key.json"
-      DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./api:/opt/airflow/api
-      - ./dbt:/opt/airflow/dbt
-      - ./secrets:/opt/airflow/secrets
-      - ./dbt_profiles:/opt/airflow/dbt_profiles
-    depends_on:
-      - postgres
-    command: scheduler
+    airflow-scheduler:
+      build: .
+      container_name: airflow-scheduler
+      restart: unless-stopped
+      env_file:
+        - .env
+      environment:
+        AIRFLOW__CORE__EXECUTOR: LocalExecutor
+        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
+        AIRFLOW__LOGGING__BASE_LOG_FOLDER: ${AIRFLOW_HOME}/logs
+        AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
+        DBT_PROFILES_DIR: "${AIRFLOW_HOME}/dbt_profiles"
+      volumes:
+        - ./dags:${AIRFLOW_HOME}/dags
+        - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./logs:/opt/airflow/logs
+        - ./dbt_profiles:${AIRFLOW_HOME}/dbt_profiles
+      depends_on:
+        - postgres
+      command: scheduler
 
-  postgres:
-    image: postgres:13
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
-
-volumes:
-  postgres-db-volume:
+  volumes:
+    postgres-db-volume:

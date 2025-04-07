@@ -1,84 +1,82 @@
-# 🚀 SpaceX ETL Pipeline 🌌
+# 🚀 SpaceX ETL Pipeline with PostgreSQL & Airflow 🌌
 
-## TL;DR
-This project extracts data from the SpaceX API, loads it into GCS, moves it to BigQuery, transforms it using dbt, and orchestrates everything with an Airflow DAG. The entire pipeline is containerized with Docker (and Docker Compose for local development), deployed as a Cloud Run Job (built for linux/amd64), and scheduled daily via Cloud Scheduler. Secrets and service account keys are securely managed in GCP Secrets Manager.
+## TL;DR  
+This project extracts data from the SpaceX API, loads it into a local PostgreSQL database, transforms it using dbt, and orchestrates everything with an Airflow DAG. The entire pipeline runs inside Docker containers (via Docker Compose) for local development. PostgreSQL credentials are managed through environment variables for flexibility and reusability.
 
 ---
 
-# Airflow Web UI
+## 🌐 Airflow Web UI
 
-![alt text](airflow-web-ui.png)
-
-## GCP Cloud Run Job Scheduler 
-
-![alt text](cloud-run-job.png)
-
-## 🛠️ Tech Stack Summary
-- **Languages & Tools:** Python, dbt, Docker, Airflow
-- **Data Extraction:** SpaceX API
-- **Storage & Data Warehouse:** Google Cloud Storage (GCS) & BigQuery
-- **Transformation:** dbt (Medallion architecture: raw → staging → mart)
-- **Orchestration:** Apache Airflow
-- **Containerization:** Docker & Docker Compose
-- **Deployment:** Cloud Run Job (via Artifact Registry) & Cloud Scheduler
-- **Secrets Management:** GCP Secrets Manager
+![Airflow UI](airflow-web-ui.png)
 
 ---
 
 ## 📊 Architecture Overview
 
-### 1. SpaceX API 🚀
-- **What:** Public API providing SpaceX launch and mission data.
-- **Role:** Source of raw data for the pipeline.
+### 1. SpaceX API 🚀  
+- **What:** Public API providing real-time launch and mission data from SpaceX.  
+- **Role:** Primary data source for the ETL pipeline.
 
-### 2. Data Extraction Scripts 📥
-- **What:** Python scripts that fetch data from the SpaceX API.
-- **Role:** Extract data and upload it to Google Cloud Storage (GCS) for staging.
+### 2. Data Extraction Scripts 📥  
+- **What:** Python modules that retrieve data from the SpaceX API.  
+- **Role:** Extract structured data and persist it to a local CSV file.
 
-### 3. Data Loading Scripts 🚚
-- **What:** Python script to transfer data from GCS to BigQuery.
-- **Role:** Populate BigQuery with raw data for further processing.
+### 3. PostgreSQL Loader 🔄  
+- **What:** Python logic that reads the CSV and loads it into a PostgreSQL database.  
+- **Role:** Populate a raw data table used as a base for transformations.
 
-### 4. Data Transformation with dbt 🧹
-- **What:** dbt project that transforms raw tables in BigQuery into refined layers.
-- **Role:** Create medallion layers (raw → staging (materialized views) → mart) for analysis.
+### 4. Data Transformation with dbt 🧹  
+- **What:** A `dbt` project to create staging and analytics tables inside PostgreSQL.  
+- **Role:** Transform raw data into structured layers following best practices (e.g., medallion architecture).
 
-### 5. Pipeline Orchestration with Airflow ⏱️
-- **What:** Airflow DAG that orchestrates extraction, loading, and transformation.
-- **Role:** Automate and monitor the execution of the entire pipeline.
+### 5. Orchestration with Airflow ⏱️  
+- **What:** An Airflow DAG manages the end-to-end process: extraction, loading, and transformation.  
+- **Role:** Automates and monitors the pipeline workflow.
 
-### 6. Local Development with Docker Compose 🐳
-- **What:** Docker Compose configuration for running a local Airflow instance.
-- **Role:** Simplify development and testing of the pipeline.
+### 6. Local Development with Docker Compose 🐳  
+- **What:** Docker Compose configuration to spin up all services: Airflow, PostgreSQL, and supporting tools.  
+- **Role:** Simplifies the local development and testing workflow.
 
-### 7. Containerization & Deployment 🚢
-- **What:** Docker image built from the project.
-- **Role:** Deployed to Artifact Registry (or GCR) for execution in the cloud.
-- **Note:** The image is built for the `linux/amd64` platform to be compatible with Cloud Run.
+### 7. Environment Variables & Configuration 📦  
+- **What:** PostgreSQL credentials and paths are configured using `.env` files or Docker Compose environment variables.  
+- **Role:** Promote reusability and avoid hardcoding sensitive or environment-specific values.
 
-### 8. Service Account & GCP Secrets 🔑
-- **What:** Service account key stored in GCP Secrets Manager.
-- **Role:** Securely enable interaction between Cloud Run, GCR, BigQuery, and GCS.
-
-### 9. Cloud Run Job for Daily Execution ☁️
-- **What:** Cloud Run Job that executes the containerized pipeline.
-- **Role:** Trigger the Airflow DAG on-demand and exit once complete, ensuring cost-efficient, serverless execution.
-
-### 10. Scheduling with Cloud Scheduler ⏰
-- **What:** Cloud Scheduler job that sends an HTTP POST to trigger the Cloud Run Job.
-- **Role:** Automate the daily execution of the pipeline.
-
-### 11. Entrypoint Script (`entrypoint.sh`) 🔄
-- **What:** Shell script that initializes the Airflow database, forces a scheduler run to parse DAGs, unpauses and triggers the DAG, and finally starts the scheduler for a short period.
-- **Role:** Ensures that each container execution fully sets up and runs the pipeline before exiting.
+### 8. Entrypoint Script (`entrypoint.sh`) 🛠️  
+- **What:** Shell script to bootstrap Airflow (initialize DB, parse DAGs, run scheduler, etc.)  
+- **Role:** Ensures containers are ready to execute workflows on start.
 
 ---
 
-## 🚀 Deployment Instructions
+## 🚀 Running Locally
 
-### Local Development
+### 1. Clone the Repository  
+```bash
+git clone https://github.com/brunolnetto/spacex-dbt-mvp.git
+cd spacex-dbt-mvp
+```
 
-1. **Clone the Repository:**
-   ```bash
-   git clone https://github.com/vzucher/spacex.git
-   cd spacex
+### 2. Start the Stack  
+```bash
+docker-compose up --build
+```
+
+### 3. Access Airflow  
+- URL: [http://localhost:8080](http://localhost:8080)  
+- Default credentials: `airflow / airflow`
+
+---
+
+## 🧪 Airflow DAG Tasks
+
+1. `extract_and_load_to_csv` – Fetch data from the SpaceX API and write it to a CSV file.
+2. `load_to_postgres` – Load CSV data into the raw table in PostgreSQL.
+3. `run_dbt_models` – Run dbt models that transform the raw table into refined datasets.
+
+---
+
+## 💡 Improvements in Progress
+
+- ✅ Switch from row-by-row inserts to bulk inserts using `executemany()`.
+- 🔒 Environment-variable driven configuration.
+- 📈 Add test coverage and CI integration.
+

@@ -1,4 +1,5 @@
-dbt-bigquery==1.9.1
-google-cloud-storage==2.19.0
+apache-airflow==2.10.5
+dbt-core==1.9.4
+dbt-postgres==1.9.0
 pandas==2.2.3
 requests==2.32.3

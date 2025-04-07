@@ -1,21 +1,40 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
-# Inicializa o banco de dados (SQLite por padrão)
-airflow db init
+echo "⌛ Waiting for PostgreSQL to become available..."
+until pg_isready -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" > /dev/null 2>&1; do
+  sleep 2
+done
+echo "✔️ PostgreSQL is ready. Proceeding with Airflow DB initialization..."
 
-# Executa o scheduler uma vez para parsear os DAGs e registrar no banco (DagModel)
-airflow scheduler --num-runs 1
+# Generate DBT profile
+envsubst < "${AIRFLOW_HOME}/dbt_profiles/profiles.template.yml" > "${AIRFLOW_HOME}/dbt_profiles/profiles.yml"
+echo "✔️ DBT profile generated."
 
-# Garante que o DAG está despausado
-airflow dags unpause spacex_dag || true
+# Ensure logs dir ownership
+mkdir -p "$AIRFLOW_HOME/logs/scheduler" 2>/dev/null
+chown -R airflow: "$AIRFLOW_HOME/logs" 2>/dev/null
+echo "✔️ Logs directory ready."
 
-# Dispara o DAG
-echo "Triggering DAG spacex_dag..."
-airflow dags trigger spacex_dag
+# Initialize Airflow DB
+if airflow db migrate > /dev/null 2>&1; then
+  echo "✔️ Airflow metadata DB initialized successfully."
+else
+  echo "❌ Failed to initialize Airflow metadata DB."
+  exit 1
+fi
 
-# Executa o scheduler para processar as tasks disparadas (usando SequentialExecutor para simplicidade)
-export AIRFLOW__CORE__EXECUTOR=SequentialExecutor
-airflow scheduler --num-runs 1
+# Create admin user
+echo "👤 Creating Airflow admin user..."
+airflow users create \
+  --username "${AIRFLOW_ADMIN_USERNAME:-admin}" \
+  --password "${AIRFLOW_ADMIN_PASSWORD:-admin}" \
+  --firstname "${AIRFLOW_ADMIN_FIRSTNAME:-Admin}" \
+  --lastname "${AIRFLOW_ADMIN_LASTNAME:-User}" \
+  --email "${AIRFLOW_ADMIN_EMAIL:-admin@example.com}" \
+  --role Admin > /dev/null 2>&1 && echo "✔️ Admin user created." || {
+    echo "⚠️ Failed to create admin user (possibly already exists)."
+  }
 
-echo "DAG spacex_dag execution completed. Exiting."
+
+echo "🏁 Airflow initialization completed. Exiting."

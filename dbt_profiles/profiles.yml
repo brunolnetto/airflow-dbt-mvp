@@ -1,12 +1,12 @@
-spacex_dbt:
+example-airflow-dbt:
   target: dev
   outputs:
     dev:
-      type: bigquery
-      method: service-account
-      project: spacex-data-pipeline
-      dataset: raw
-      threads: 2
-      timeout_seconds: 300
-      keyfile: "/opt/airflow/secrets/spacex-ingestor-key.json"
-      priority: interactive
+      type: postgres
+      host: postgres
+      user: airflow
+      password: airflow
+      port: 5432
+      dbname: airflow
+      schema: analytics
+      retries: 3
