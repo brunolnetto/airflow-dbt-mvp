@@ -1,0 +1,16 @@
+[project]
+name = "airflow-dbt"
+version = "0.1.0"
+description = "A minimal fastapi project with uv and docker"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "apache-airflow==2.10.5",
+    "dbt-core==1.9.4",
+    "dbt-postgres==1.9.0",
+    "pandas==2.2.3",
+    "requests==2.32.3",
+    "uv >= 0.5.1"
+]
+
+

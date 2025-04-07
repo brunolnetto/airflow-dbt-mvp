@@ -8,7 +8,6 @@ secrets
 
 # Package files
 poetry.lock
-pyproject.toml
 
 # dbt
 dbt/logs/

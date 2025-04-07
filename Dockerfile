@@ -11,9 +11,10 @@ RUN mkdir -p /opt/airflow/logs/scheduler && \
 USER airflow
 WORKDIR /opt/airflow
 
-COPY requirements.txt .
+# Copy app files
+COPY . .
 
 RUN pip install --no-cache-dir uv
 
-# Just install with uv pip, without --system
-RUN uv venv && uv pip install --no-cache-dir -r requirements.txt
+# Install dependencies
+RUN uv sync
