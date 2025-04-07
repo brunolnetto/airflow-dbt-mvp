@@ -9,8 +9,8 @@ from spacex.tasks import (
 with DAG(
     dag_id="spacex_etl_dag",
     default_args=DEFAULT_ARGS,
-    description="🚀 SpaceX ETL pipeline: API -> GCS -> BQ -> dbt",
-    schedule_interval="@daily",
+    description="🚀 SpaceX ETL pipeline: API -> postgres -> dbt",
+    schedule_interval="@hourly",
     catchup=False,
     tags=["spacex", "etl", "dbt"]
 ) as dag:

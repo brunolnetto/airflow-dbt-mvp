@@ -10,9 +10,26 @@ import psycopg2
 from psycopg2.extras import execute_values
 
 # ================ Config =====================
+DATABASE_NAME = "spacex_db"
 TABLE_NAME = "spacex_launches"
 RAW_SCHEMA = "raw"  # para compatibilidade com DBT
 FULL_TABLE_NAME = f"{RAW_SCHEMA}.{TABLE_NAME}"
+
+# ================ Environment =================
+def get_env_or_fail(var: str, fallback=None):
+    value = os.getenv(var, fallback)
+    if value is None:
+        raise RuntimeError(f"❌ Missing required env var: {var}")
+    return value
+
+def load_conn_params():
+    return {
+        "host": get_env_or_fail("POSTGRES_HOST"),
+        "port": get_env_or_fail("POSTGRES_PORT", 5432),
+        "user": get_env_or_fail("POSTGRES_USER"),
+        "password": get_env_or_fail("POSTGRES_PASSWORD"),
+        "dbname": DATABASE_NAME,
+    }
 
 # ================ Logging ====================
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -46,6 +63,31 @@ def transform_launch_data(raw_data: List[dict]) -> pd.DataFrame:
     return df
 
 # ================ Load =======================
+def ensure_database_exists(db_params: dict):
+    dbname = db_params["dbname"]
+    logging.info(f"🔍 Checking if database '{dbname}' exists...")
+
+    check_conn_params = db_params.copy()
+    check_conn_params["dbname"] = "postgres"
+
+    # criar conexão fora do "with" e setar autocommit antes de usar
+    conn = psycopg2.connect(**check_conn_params)
+    conn.set_session(autocommit=True)
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (dbname,))
+            exists = cur.fetchone()
+            if not exists:
+                logging.info(f"📦 Database '{dbname}' not found. Creating...")
+                cur.execute(f'CREATE DATABASE "{dbname}"')
+                logging.info(f"✅ Database '{dbname}' created.")
+            else:
+                logging.info(f"✔️ Database '{dbname}' already exists.")
+    finally:
+        conn.close()
+
+
 def upload_to_postgres(df: pd.DataFrame, conn_params: dict) -> None:
     logging.info(f"⬆️ Uploading {len(df)} rows to PostgreSQL...")
     
@@ -79,23 +121,6 @@ def upload_to_postgres(df: pd.DataFrame, conn_params: dict) -> None:
 
     logging.info("✅ Upload complete.")
 
-
-# ================ Environment =================
-def get_env_or_fail(var: str, fallback=None):
-    value = os.getenv(var, fallback)
-    if value is None:
-        raise RuntimeError(f"❌ Missing required env var: {var}")
-    return value
-
-def load_conn_params():
-    return {
-            "host": get_env_or_fail("POSTGRES_HOST"),
-            "port": get_env_or_fail("POSTGRES_PORT", 5432),
-            "user": get_env_or_fail("POSTGRES_USER"),
-            "password": get_env_or_fail("POSTGRES_PASSWORD"),
-            "dbname": get_env_or_fail("POSTGRES_DB"),
-        }
-
 # ================ Pipeline ===================
 def run_spacex_pipeline() -> None:
     start = datetime.now()
@@ -103,6 +128,9 @@ def run_spacex_pipeline() -> None:
 
     logging.info("🔑 Loading connection parameters...")
     conn_params = load_conn_params()
+
+    # ➕ Create database if not exist
+    ensure_database_exists(conn_params)
 
     logging.info("📥 Extracting data from SpaceX API...")
     raw_data = extract_from_spacex()
