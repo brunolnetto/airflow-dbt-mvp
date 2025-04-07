@@ -79,25 +79,6 @@ def upload_to_postgres(df: pd.DataFrame, conn_params: dict) -> None:
 
     logging.info("✅ Upload complete.")
 
-# ================ Pipeline ===================
-def run_spacex_pipeline(conn_params: dict) -> None:
-    start = datetime.now()
-    logging.info("🚀 Starting ETL process...")
-    
-    raw_data = extract_from_spacex()
-    if not raw_data:
-        logging.warning("⚠️ No data fetched.")
-        return
-    
-    df = transform_launch_data(raw_data)
-    if df.empty:
-        logging.warning("⚠️ Transformed DataFrame is empty.")
-        return
-
-    upload_to_postgres(df, conn_params)
-    
-    elapsed = (datetime.now() - start).total_seconds()
-    logging.info(f"🎯 ETL finished in {elapsed:.2f}s")
 
 # ================ Environment =================
 def get_env_or_fail(var: str, fallback=None):
@@ -106,14 +87,37 @@ def get_env_or_fail(var: str, fallback=None):
         raise RuntimeError(f"❌ Missing required env var: {var}")
     return value
 
-# ================ Main =======================
-if __name__ == "__main__":
-    conn_params = {
-        "host": get_env_or_fail("POSTGRES_HOST"),
-        "port": get_env_or_fail("POSTGRES_PORT", 5432),
-        "user": get_env_or_fail("POSTGRES_USER"),
-        "password": get_env_or_fail("POSTGRES_PASSWORD"),
-        "dbname": get_env_or_fail("POSTGRES_DB"),
-    }
+def load_conn_params():
+    return {
+            "host": get_env_or_fail("POSTGRES_HOST"),
+            "port": get_env_or_fail("POSTGRES_PORT", 5432),
+            "user": get_env_or_fail("POSTGRES_USER"),
+            "password": get_env_or_fail("POSTGRES_PASSWORD"),
+            "dbname": get_env_or_fail("POSTGRES_DB"),
+        }
 
-    run_pipeline(conn_params)
+# ================ Pipeline ===================
+def run_spacex_pipeline() -> None:
+    start = datetime.now()
+    logging.info("🚀 Starting ETL process...")
+
+    logging.info("🔑 Loading connection parameters...")
+    conn_params = load_conn_params()
+
+    logging.info("📥 Extracting data from SpaceX API...")
+    raw_data = extract_from_spacex()
+    if not raw_data:
+        logging.warning("⚠️ No data fetched.")
+        return
+    
+    logging.info("🔧 Transforming data...")
+    df = transform_launch_data(raw_data)
+    if df.empty:
+        logging.warning("⚠️ Transformed DataFrame is empty.")
+        return
+
+    logging.info("⬆️ Uploading data to PostgreSQL...")
+    upload_to_postgres(df, conn_params)
+    
+    elapsed = (datetime.now() - start).total_seconds()
+    logging.info(f"🎯 ETL finished in {elapsed:.2f}s")
