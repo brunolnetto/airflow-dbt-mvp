@@ -3,7 +3,6 @@ from airflow import DAG
 from spacex.config import DEFAULT_ARGS
 from spacex.tasks import (
     get_extract_and_load_task,
-    get_load_to_postgres_task,
     get_dbt_run_task
 )
 
@@ -17,7 +16,6 @@ with DAG(
 ) as dag:
 
     extract_and_load = get_extract_and_load_task()
-    load_bq = get_load_to_postgres_task()
     run_dbt = get_dbt_run_task()
 
-    extract_and_load >> load_bq >> run_dbt
+    extract_and_load >> run_dbt
