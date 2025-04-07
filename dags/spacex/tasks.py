@@ -3,7 +3,7 @@
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 
-from dags.spacex.pipelines.spacex_etl import run_spacex_pipeline
+from spacex.pipelines.spacex_etl import run_spacex_pipeline
 from spacex.config import DBT_PATH
 
 

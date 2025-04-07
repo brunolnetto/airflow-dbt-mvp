@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 import os
 
 PROJECT_DIR = os.getenv("AIRFLOW_HOME", "/opt/airflow")
-DBT_PATH = os.path.join(PROJECT_DIR, "dbt")
+DBT_PATH_DEFAULT = os.path.join(PROJECT_DIR, "dbt")
+DBT_PATH = os.getenv("DBT_PATH", DBT_PATH_DEFAULT)
 
 DEFAULT_ARGS = {
     "owner": "airflow",
