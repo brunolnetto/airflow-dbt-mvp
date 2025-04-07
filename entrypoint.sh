@@ -8,6 +8,9 @@ done
 echo "✔️ PostgreSQL is ready. Proceeding with Airflow DB initialization..."
 
 # Generate DBT profile
+echo "🧑 Running as user: $(whoami)"
+chmod u+w "${AIRFLOW_HOME}/dbt_profiles"
+rm -f "${AIRFLOW_HOME}/dbt_profiles/profiles.yml"
 envsubst < "${AIRFLOW_HOME}/dbt_profiles/profiles.template.yml" > "${AIRFLOW_HOME}/dbt_profiles/profiles.yml"
 echo "✔️ DBT profile generated."
 
