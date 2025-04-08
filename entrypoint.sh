@@ -1,23 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
+
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
 RESET="\033[0m"
 
-<<<<<<< HEAD
-# Generate DBT profile
-echo "🧑 Running as user: $(whoami)"
-chmod u+w "${AIRFLOW_HOME}/dbt_profiles"
-rm -f "${AIRFLOW_HOME}/dbt_profiles/profiles.yml"
-envsubst < "${AIRFLOW_HOME}/dbt_profiles/profiles.template.yml" > "${AIRFLOW_HOME}/dbt_profiles/profiles.yml"
-echo "✔️ DBT profile generated."
-=======
 log_info()  { echo -e "${GREEN}🟢 [INFO] $*${RESET}"; }
 log_warn()  { echo -e "${YELLOW}🟡 [WARN] $*${RESET}"; }
 log_error() { echo -e "${RED}🔴 [ERROR] $*${RESET}" >&2; }
->>>>>>> 5e147f7 (feat: pyproject.toml, dbt pipeline, docker-compose with redis, worker and  flower, profiles.yml fix)
 
 trap 'log_error "Unexpected error at line $LINENO. Exiting."' ERR
 
@@ -35,14 +27,14 @@ wait_for_postgres() {
 
 generate_dbt_profile() {
   log_info "Generating DBT profile..."
-  mkdir -p "${AIRFLOW_HOME}/dbt_profiles"
-  [[ -w "${AIRFLOW_HOME}/dbt_profiles" ]] || chmod u+w "${AIRFLOW_HOME}/dbt_profiles"
+  mkdir -p "${AIRFLOW_HOME}/dbt/profiles"
+  [[ -w "${AIRFLOW_HOME}/dbt/profiles" ]] || chmod u+w "${AIRFLOW_HOME}/dbt/profiles"
 
-  local output_file="${AIRFLOW_HOME}/dbt_profiles/profiles.yml"
+  local output_file="${AIRFLOW_HOME}/dbt/profiles/profiles.yml"
   local temp_file
   temp_file=$(mktemp)
 
-  envsubst < "${AIRFLOW_HOME}/dbt_profiles/profiles.template.yml" > "$temp_file"
+  envsubst < "${AIRFLOW_HOME}/dbt/profiles/profiles.template.yml" > "$temp_file"
 
   if ! cmp -s "$temp_file" "$output_file"; then
     mv "$temp_file" "$output_file"
@@ -63,12 +55,16 @@ prepare_logs_dir() {
 
 initialize_airflow_db() {
   log_info "Initializing Airflow metadata database..."
-  airflow db migrate > /dev/null 2>&1 && \
-    log_info "Airflow metadata DB initialized successfully." || {
-      log_error "Failed to initialize Airflow metadata DB."
-      exit 1
-    }
+
+  if ! output=$(airflow db migrate 2>&1); then
+    log_error "Failed to initialize Airflow metadata DB. Output:"
+    echo "$output" >&2
+    exit 1
+  fi
+
+  log_info "Airflow metadata DB initialized successfully."
 }
+
 
 create_admin_user() {
   if airflow users list | grep -q "${AIRFLOW_ADMIN_USERNAME:-admin}"; then
@@ -96,4 +92,8 @@ main() {
   log_info "Airflow initialization completed successfully. Exiting."
 }
 
-main "$@" || log_error "Airflow bootstrap failed" && exit 1
+if ! main "$@"; then
+  log_error "Airflow bootstrap failed"
+  exit 1
+fi
+

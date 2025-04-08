@@ -1,6 +1,7 @@
 apache-airflow[celery,redis,postgres]==2.10.5
 apache-airflow-providers-openlineage==2.1.1
-celery[redis]==5.2.7
+apache-airflow-providers-celery==3.10.4
+celery[redis]==5.4.0
 dbt-core==1.9.4
 dbt-postgres==1.9.0
 pandas==2.2.3

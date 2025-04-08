@@ -1,25 +1,27 @@
-FROM apache/airflow:2.7.2-python3.10
+FROM apache/airflow:2.10.5-python3.10
 
 USER root
 WORKDIR /opt/airflow
 
-# Install gettext (used by envsubst)
-RUN apt-get update && apt-get install -y --no-install-recommends gettext && \
+# Install system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gettext curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Create DBT profile directory and fix permissions
-RUN mkdir -p /opt/airflow/dbt_profiles && \
-    chown -R airflow: /opt/airflow
+# Download and install uv
+COPY --from=ghcr.io/astral-sh/uv:0.6.13 /uv /uvx /bin/
 
-# Copy only the requirements first to leverage Docker cache
+# Change ownership of /opt/airflow to airflow user
+RUN chown -R airflow: /opt/airflow
+
+# Copy requirements.txt
 COPY requirements.txt .
 
+# Instala as dependências com uv
+RUN uv pip install --system -r requirements.txt
+
+# Change ownership of requirements.txt to airflow user
 USER airflow
 
-# Upgrade pip and install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install --user -r requirements.txt
-
-# Copy the rest of the code after installing dependencies
+# Copia o restante da aplicação
 COPY --chown=airflow:airflow . .
-
