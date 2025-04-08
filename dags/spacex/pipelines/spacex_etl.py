@@ -23,6 +23,9 @@ def get_env_or_fail(var: str, fallback=None):
     return value
 
 def load_conn_params():
+    from dotenv import load_dotenv
+    load_dotenv()
+
     return {
         "host": get_env_or_fail("POSTGRES_HOST"),
         "port": get_env_or_fail("POSTGRES_PORT", 5432),
@@ -149,3 +152,6 @@ def run_spacex_pipeline() -> None:
     
     elapsed = (datetime.now() - start).total_seconds()
     logging.info(f"🎯 ETL finished in {elapsed:.2f}s")
+
+if __name__ == "__main__":
+    run_spacex_pipeline()

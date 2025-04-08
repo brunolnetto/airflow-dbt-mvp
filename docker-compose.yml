@@ -12,7 +12,12 @@
       volumes:
         - postgres-db-volume:/var/lib/postgresql/data
 
-    airflow-init:
+    redis:
+      image: redis:latest
+      container_name: airflow-redis
+      restart: unless-stopped
+
+    init:
       build: .
       container_name: airflow-init
       env_file:
@@ -30,7 +35,7 @@
       depends_on:
         - postgres
 
-    airflow-webserver:
+    webserver:
       build: .
       container_name: airflow-webserver
       restart: unless-stopped
@@ -38,11 +43,12 @@
         - .env
       environment:
         AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
-        AIRFLOW__CORE__EXECUTOR: LocalExecutor
+        AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+        AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
         AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
         AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
         AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
-        DBT_PROFILES_DIR: "/opt/airflow/dbt_profiles"
+        DBT_PROFILES_DIR: "${AIRFLOW_HOME}/dbt_profiles"
       volumes:
         - ./dags:${AIRFLOW_HOME}/dags
         - ./dbt:${AIRFLOW_HOME}/dbt
@@ -50,9 +56,10 @@
         - "8080:8080"
       depends_on:
         - postgres
+        - redis
       command: webserver
 
-    airflow-scheduler:
+    scheduler:
       build: .
       container_name: airflow-scheduler
       restart: unless-stopped
@@ -70,5 +77,41 @@
         - postgres
       command: scheduler
 
+    worker:
+      build: .
+      container_name: airflow-worker
+      restart: unless-stopped
+      env_file:
+        - .env
+      environment:
+        AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
+        AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+        AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      volumes:
+        - ./dags:${AIRFLOW_HOME}/dags
+        - ./dbt:${AIRFLOW_HOME}/dbt
+      depends_on:
+        - postgres
+        - redis
+      command: celery worker
+
+    flower:
+      image: mher/flower:latest
+      container_name: airflow-flower
+      restart: unless-stopped
+      env_file:
+        - .env
+      environment:
+        CELERY_RESULT_BACKEND: redis://redis:6379/0
+        CELERY_BROKER_URL: redis://redis:6379/0
+      ports:
+        - "5555:5555"
+      depends_on:
+        - redis
+        - webserver
+      command: celery --app airflow.executors.celery_executor worker --loglevel=info --hostname=airflow@%h
+
   volumes:
     postgres-db-volume:
+

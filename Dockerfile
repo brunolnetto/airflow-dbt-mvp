@@ -1,32 +1,25 @@
 FROM apache/airflow:2.7.2-python3.10
 
 USER root
+WORKDIR /opt/airflow
 
-# Enable bytecode compilation
-ENV UV_COMPILE_BYTECODE=1
+# Install gettext (used by envsubst)
+RUN apt-get update && apt-get install -y --no-install-recommends gettext && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy from the cache instead of linking since it's a mounted volume
-ENV UV_LINK_MODE=copy
-
-RUN apt-get update && apt-get install -y gettext && rm -rf /var/lib/apt/lists/*
-
-# Copie os arquivos antes de mudar permissões
-COPY . .
-
+# Create DBT profile directory and fix permissions
 RUN mkdir -p /opt/airflow/dbt_profiles && \
     chown -R airflow: /opt/airflow
 
+# Copy only the requirements first to leverage Docker cache
+COPY requirements.txt .
+
 USER airflow
-WORKDIR /opt/airflow
 
-RUN pip install --no-cache-dir uv
+# Upgrade pip and install Python dependencies
+RUN pip install --upgrade pip && \
+    pip install --user -r requirements.txt
 
-RUN uv lock
-
-# Install the project's dependencies using the lockfile and settings
-RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project --no-dev
-
-# Place executables in the environment at the front of the path
-ENV PATH="/app/.venv/bin:$PATH"
+# Copy the rest of the code after installing dependencies
+COPY --chown=airflow:airflow . .
 

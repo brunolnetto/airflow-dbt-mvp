@@ -26,6 +26,6 @@ def get_dbt_run_task():
         bash_command=f"""
             cd {DBT_PATH} &&
             dbt deps &&
-            dbt run
+            dbt run --no-write-json
         """,
     )

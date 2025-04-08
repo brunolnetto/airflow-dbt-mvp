@@ -2,8 +2,8 @@
 # Name your project! Project names should contain only lowercase characters
 # and underscores. A good package name should reflect your organization's
 # name or the intended use of these models
-name: 'spacex_dbt'
-version: '1.0.0'
+name: 'airflow_dbt'
+version: '0.0.1'
 
 # This setting configures which "profile" dbt uses for this project.
 profile: 'airflow_dbt'
@@ -30,7 +30,9 @@ clean-targets:         # directories to be removed by `dbt clean`
 # directory as views. These settings can be overridden in the individual model
 # files using the `{{ config(...) }}` macro.
 models:
-  spacex_dbt:
+  airflow_dbt:
     # Config indicated by + and applies to all files under models/example/
-    example:
+    staging:
+      +materialized: view
+    mart:
       +materialized: view
