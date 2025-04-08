@@ -1,4 +1,4 @@
-spacex_dbt:
+airflow_dbt:
   target: dev
   outputs:
     dev:
