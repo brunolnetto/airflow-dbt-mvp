@@ -11,11 +11,18 @@
         POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       volumes:
         - postgres-db-volume:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+        interval: 10s
+        timeout: 3s
+        retries: 3
 
     redis:
       image: redis:latest
       container_name: airflow-redis
       restart: unless-stopped
+      healthcheck:
+        test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
 
     init:
       build: .
@@ -33,7 +40,8 @@
         - ./entrypoint.sh:/entrypoint.sh
       entrypoint: ["/bin/bash", "/entrypoint.sh"]
       depends_on:
-        - postgres
+        postgres:
+          condition: service_healthy
 
     webserver:
       build: .
@@ -55,9 +63,19 @@
       ports:
         - "8080:8080"
       depends_on:
-        - postgres
-        - redis
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+        airflow-init:
+          condition: service_completed_successfully
       command: webserver
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+        start_period: 30s
 
     scheduler:
       build: .
@@ -66,16 +84,60 @@
       env_file:
         - .env
       environment:
-        AIRFLOW__CORE__EXECUTOR: LocalExecutor
+        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+        AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+        AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+        AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+        AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
         AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
         AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
         DBT_PROFILES_DIR: "${AIRFLOW_HOME}/dbt_profiles"
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+        start_period: 30s
       volumes:
         - ./dags:${AIRFLOW_HOME}/dags
         - ./dbt:${AIRFLOW_HOME}/dbt
-      depends_on:
-        - postgres
+      postgres:
+          condition: service_healthy
+      redis:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
       command: scheduler
+    
+    triggerer:
+      build: .
+      container_name: airflow-triggerer
+      restart: unless-stopped
+      env_file:
+        - .env
+      command: triggerer
+      environment:
+        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+        AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
+        AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+        AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+        AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
+        AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
+        DBT_PROFILES_DIR: "${AIRFLOW_HOME}/dbt_profiles"
+      healthcheck:
+        test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+        interval: 30s
+        timeout: 10s
+        retries: 5
+        start_period: 30s
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
+        airflow-init:
+          condition: service_completed_successfully
 
     worker:
       build: .
@@ -92,9 +154,19 @@
         - ./dags:${AIRFLOW_HOME}/dags
         - ./dbt:${AIRFLOW_HOME}/dbt
       depends_on:
-        - postgres
-        - redis
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
       command: celery worker
+      healthcheck:
+        test:
+          - "CMD-SHELL"
+          - 'celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
+        interval: 30s
+        timeout: 10s
+        retries: 5
+        start_period: 30s
 
     flower:
       image: mher/flower:latest
@@ -108,9 +180,19 @@
       ports:
         - "5555:5555"
       depends_on:
-        - redis
-        - webserver
-      command: celery --app airflow.executors.celery_executor worker --loglevel=info --hostname=airflow@%h
+        redis:
+          condition: service_healthy
+        webserver:
+          condition: service_healthy
+        init:
+          condition: service_completed_successfully
+      healthcheck:
+        test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+        start_period: 30s
+      command: celery flower
 
   volumes:
     postgres-db-volume:
