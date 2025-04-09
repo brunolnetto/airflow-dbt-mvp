@@ -14,10 +14,10 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h localhost"]
       interval: 10s
       timeout: 3s
-      retries: 3
+      retries: 5
 
   # 🧠 Redis service 
   # Description: a fast in-memory data structure store, used as a database, cache, and message broker.

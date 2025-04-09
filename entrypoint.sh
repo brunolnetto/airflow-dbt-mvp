@@ -31,6 +31,8 @@ create_postgres_databases() {
     return
   fi
 
+  echo "$POSTGRES_DATABASES" | grep -q ',' || POSTGRES_DATABASES="$POSTGRES_DATABASES,"
+
   log_info "🔧 Creating extra PostgreSQL databases (if not existing)..."
 
   IFS=',' read -ra DBS <<< "$POSTGRES_DATABASES"
@@ -39,17 +41,17 @@ create_postgres_databases() {
     if [ -z "$db_trimmed" ]; then
       continue
     fi
+
     log_info "🔍 Checking existence of database '$db_trimmed'..."
-    if psql -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" -tc "SELECT 1 FROM pg_database WHERE datname = '$db_trimmed'" | grep -q 1; then
+    if PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" -tc "SELECT 1 FROM pg_database WHERE datname = '$db_trimmed'" | grep -q 1; then
       log_info "✅ Database '$db_trimmed' already exists. Skipping."
     else
       log_info "📦 Creating database '$db_trimmed'..."
-      createdb -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" "$db_trimmed"
+      PGPASSWORD="$POSTGRES_PASSWORD" createdb -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" "$db_trimmed"
       log_info "✅ Database '$db_trimmed' created."
     fi
   done
 }
-
 
 generate_dbt_profile() {
   log_info "Generating DBT profile..."
