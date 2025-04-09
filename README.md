@@ -1,82 +1,127 @@
-# 🚀 SpaceX ETL Pipeline with PostgreSQL & Airflow 🌌
 
-## TL;DR  
-This project extracts data from the SpaceX API, loads it into a local PostgreSQL database, transforms it using dbt, and orchestrates everything with an Airflow DAG. The entire pipeline runs inside Docker containers (via Docker Compose) for local development. PostgreSQL credentials are managed through environment variables for flexibility and reusability.
 
----
+# 🌀 Airflow + DBT + Metabase Stack
 
-## 🌐 Airflow Web UI
 
-![Airflow UI](airflow-web-ui.png)
 
----
+This project provides a production-like local environment using **Apache Airflow**, **dbt**, **Redis**, **PostgreSQL**, and **Metabase**, all orchestrated via **Docker Compose**.
 
-## 📊 Architecture Overview
 
-### 1. SpaceX API 🚀  
-- **What:** Public API providing real-time launch and mission data from SpaceX.  
-- **Role:** Primary data source for the ETL pipeline.
 
-### 2. Data Extraction Scripts 📥  
-- **What:** Python modules that retrieve data from the SpaceX API.  
-- **Role:** Extract structured data and persist it to a local CSV file.
+> Ideal for modern data workflow development, scheduling, and exploration.
 
-### 3. PostgreSQL Loader 🔄  
-- **What:** Python logic that reads the CSV and loads it into a PostgreSQL database.  
-- **Role:** Populate a raw data table used as a base for transformations.
-
-### 4. Data Transformation with dbt 🧹  
-- **What:** A `dbt` project to create staging and analytics tables inside PostgreSQL.  
-- **Role:** Transform raw data into structured layers following best practices (e.g., medallion architecture).
-
-### 5. Orchestration with Airflow ⏱️  
-- **What:** An Airflow DAG manages the end-to-end process: extraction, loading, and transformation.  
-- **Role:** Automates and monitors the pipeline workflow.
-
-### 6. Local Development with Docker Compose 🐳  
-- **What:** Docker Compose configuration to spin up all services: Airflow, PostgreSQL, and supporting tools.  
-- **Role:** Simplifies the local development and testing workflow.
-
-### 7. Environment Variables & Configuration 📦  
-- **What:** PostgreSQL credentials and paths are configured using `.env` files or Docker Compose environment variables.  
-- **Role:** Promote reusability and avoid hardcoding sensitive or environment-specific values.
-
-### 8. Entrypoint Script (`entrypoint.sh`) 🛠️  
-- **What:** Shell script to bootstrap Airflow (initialize DB, parse DAGs, run scheduler, etc.)  
-- **Role:** Ensures containers are ready to execute workflows on start.
 
 ---
 
-## 🚀 Running Locally
+## 🚀 Quickstart
 
-### 1. Clone the Repository  
+### 1. Clone the repository
+
 ```bash
-git clone https://github.com/brunolnetto/spacex-dbt-mvp.git
-cd spacex-dbt-mvp
+git clone https://github.com/your-org/your-repo.git
+cd your-repo
 ```
 
-### 2. Start the Stack  
+### 2. Set environment variables
+
+Create a `.env` file based on `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required credentials like `POSTGRES_USER`, `POSTGRES_PASSWORD`, etc.
+
+### 3. Start the services
+
 ```bash
 docker-compose up --build
 ```
 
-### 3. Access Airflow  
-- URL: [http://localhost:8080](http://localhost:8080)  
-- Default credentials: `airflow / airflow`
+### 4. Access the interfaces
+
+| Service     | URL                    | Description                        |
+|-------------|------------------------|------------------------------------|
+| Airflow UI  | http://localhost:8080  | DAG orchestration & monitoring     |
+| Flower      | http://localhost:5555  | Celery task queue monitoring       |
+| Metabase    | http://localhost:3000  | Data exploration & BI dashboards   |
 
 ---
 
-## 🧪 Airflow DAG Tasks
+## 🧱 Stack Components
 
-1. `extract_and_load_to_csv` – Fetch data from the SpaceX API and write it to a CSV file.
-2. `load_to_postgres` – Load CSV data into the raw table in PostgreSQL.
-3. `run_dbt_models` – Run dbt models that transform the raw table into refined datasets.
+- **Airflow**: Workflow orchestration engine.
+- **Redis**: Message broker for Celery.
+- **PostgreSQL**: Metadata DB for Airflow and Metabase.
+- **dbt**: SQL-based data transformation (mounted into Airflow).
+- **Metabase**: BI platform for querying and dashboards.
+- **Flower**: Real-time monitoring of Celery workers.
 
 ---
 
-## 💡 Improvements in Progress
+## 📁 Project Structure
 
-- ✅ Switch from row-by-row inserts to bulk inserts using `executemany()`.
-- 🔒 Environment-variable driven configuration.
-- 📈 Add test coverage and CI integration.
+```bash
+.
+├── dags/           # Airflow DAGs
+├── dbt/            # dbt project
+├── .env            # Environment variables
+├── Dockerfile      # Custom Airflow image
+├── docker-compose.yml
+└── entrypoint.sh   # Airflow/dbt initialization script
+```
+
+---
+
+## 🛠️ Useful Commands
+
+### Rebuild services after changes
+
+```bash
+docker-compose down
+docker-compose up --build
+```
+
+### Shut everything down
+
+```bash
+docker-compose down -v
+```
+
+---
+
+## ✅ Health & Logs
+
+Each service includes Docker health checks and basic logging:
+
+- Logs are rotated (`max-size=5m`, `max-file=2`)
+- Health checks ensure services wait for dependencies (e.g., Postgres before Airflow)
+
+---
+
+## 🧪 Tip: Local Testing
+
+You can test your DAGs or dbt models directly inside the container:
+
+```bash
+docker exec -it airflow-webserver bash
+airflow dags list
+dbt run
+```
+
+---
+
+## 🧯 Troubleshooting
+
+- **Airflow not starting?** Check PostgreSQL health in logs.
+- **Metabase errors?** Ensure `MB_DB_*` env vars are correctly set.
+- **Volumes not syncing?** Restart Docker and try again.
+
+---
+
+## 🧬 TODO / Improvements
+
+- [ ] Add authentication (Airflow/Metabase)
+- [ ] Add persistent volume for Redis
+- [ ] Parameterize more settings in `.env`
 
