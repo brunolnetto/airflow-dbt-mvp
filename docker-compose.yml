@@ -258,4 +258,5 @@ services:
 
 volumes:
   postgres-db-volume:
+  redis_data:
   metabase_data:
