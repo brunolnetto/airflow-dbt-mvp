@@ -7,6 +7,6 @@ airflow_dbt:
       user: ${POSTGRES_USER}
       password: ${POSTGRES_PASSWORD}
       port: ${POSTGRES_PORT}
-      dbname: ${POSTGRES_DB}
+      dbname: ${DBT_DB}
       schema: ${DBT_SCHEMA}
       retries: 3

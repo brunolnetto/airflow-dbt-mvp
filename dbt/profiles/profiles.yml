@@ -8,5 +8,5 @@ airflow_dbt:
       password: airflow
       port: 5432
       dbname: spacex_db
-      schema: analytics
+      schema: raw
       retries: 3

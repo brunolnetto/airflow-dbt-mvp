@@ -19,9 +19,13 @@ COPY requirements.txt .
 
 # Instala as dependências com uv
 RUN uv pip install --system -r requirements.txt
+RUN uv pip install --upgrade protobuf
 
 # Change ownership of requirements.txt to airflow user
 USER airflow
 
 # Copia o restante da aplicação
 COPY --chown=airflow:airflow . .
+
+# Change ownership to match Airflow's user (UID 50000 is common for airflow)
+RUN chown -R 50000:0 /opt/airflow/dbt

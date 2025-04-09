@@ -1,222 +1,260 @@
-  services:
-    postgres:
-      image: postgres:13
-      container_name: airflow-postgres
-      restart: unless-stopped
-      env_file:
-        - .env
-      environment:
-        POSTGRES_DB: ${POSTGRES_DB}
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        - postgres-db-volume:/var/lib/postgresql/data
-      healthcheck:
-        test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
-        interval: 10s
-        timeout: 3s
-        retries: 3
+services:
+  # 🐘 Postgres service
+  # Description: a powerful, open-source object-relational database system.
+  postgres:
+    image: postgres:13
+    container_name: airflow-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
-    redis:
-      image: redis:alpine
-      container_name: airflow-redis
-      restart: unless-stopped
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 10s
-        timeout: 5s
-        retries: 5
-        start_period: 5s
+  # 🧠 Redis service 
+  # Description: a fast in-memory data structure store, used as a database, cache, and message broker.
+  redis:
+    image: redis:alpine
+    container_name: airflow-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
-    init:
-      build: .
-      image: airflow-dbt:v1.0-dev
-      container_name: airflow-init
-      env_file:
-        - .env
-      environment:
-        AIRFLOW__CORE__SQL_ALCHEMY_CONN: db+postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      volumes:
-        - ./dags:${AIRFLOW_HOME}/dags:ro
-        - ./dbt:${AIRFLOW_HOME}/dbt
-        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
-        - ./entrypoint.sh:/entrypoint.sh
-      entrypoint: ["/bin/bash", "/entrypoint.sh"]
-      depends_on:
-        postgres:
-          condition: service_healthy
+  # ⚙️ Airflow Initialization service
+  # Description: initializes the Airflow database and sets up the environment.
+  init:
+    build: .
+    image: airflow-dbt:v1.0-dev
+    container_name: airflow-init
+    env_file:
+      - .env
+    volumes:
+      - ./dags:${AIRFLOW_HOME}/dags:ro
+      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+      - ./entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
-    webserver:
-      image: airflow-dbt:v1.0-dev
-      container_name: airflow-webserver
-      restart: unless-stopped
-      env_file:
-        - .env
-      user: "${AIRFLOW_UID:-50000}:0"
-      environment:
-        AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
-        AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-        AIRFLOW__CELERY__BROKER_URL: ${REDIS_URL}/0
-        AIRFLOW__CELERY__WORKER_LOG_SERVER_HOST: worker
-        AIRFLOW__LOGGING__REMOTE_LOGGING: 'False'
-        AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
-        AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: ${POSTGRES_URI}
-        AIRFLOW__WEBSERVER__SECRET_KEY: ${SECRET_KEY}
-        DBT_PROFILES_DIR: "${AIRFLOW_HOME}/dbt/profiles"
-      volumes:
-        - ./dags:${AIRFLOW_HOME}/dags:ro
-        - ./dbt:${AIRFLOW_HOME}/dbt
-        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
-      ports:
-        - "8080:8080"
-        - "8793:8793"
-      depends_on:
-        redis:
-          condition: service_healthy
-        init:
-          condition: service_completed_successfully
-      command: webserver
-      healthcheck:
-        test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
-        start_period: 30s
-      logging:
-        driver: "json-file"
-        options:
-          max-file: "2"
-          max-size: "5m"
-    
-    worker:
-      image: airflow-dbt:v1.0-dev
-      container_name: airflow-worker
-      command: >
-        /bin/bash -c "
-          find /opt/airflow/dbt -type d -exec chmod 775 {} \; &&
-          find /opt/airflow/dbt -type f -exec chmod 664 {} \; &&
-          chown -R airflow:airflow /opt/airflow/dbt &&
-          exec airflow worker"
-      user: "${AIRFLOW_UID:-50000}:0"
-      restart: unless-stopped
-      env_file:
-        - .env
-      environment:
-        # Required to handle warm shutdown of the celery workers properly
-        # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
-        DUMB_INIT_SETSID: "0"
-      volumes:
-        - ./dags:${AIRFLOW_HOME}/dags
-        - ./dbt:${AIRFLOW_HOME}/dbt
-        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
-      depends_on:
-        webserver:
-          condition: service_healthy
-      healthcheck:
-        # yamllint disable rule:line-length
-        test:
-          - "CMD-SHELL"
-          - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
-        interval: 30s
-        timeout: 10s
-        retries: 5
-        start_period: 30s
-      logging:
-        driver: "json-file"
-        options:
-          max-file: "2"
-          max-size: "5m"
+  # 🌐 Airflow webserver service
+  # Description: the web interface for Airflow, allowing users to monitor and manage workflows.
+  webserver:
+    image: airflow-dbt:v1.0-dev
+    container_name: airflow-webserver
+    restart: unless-stopped
+    env_file:
+      - .env
+    user: "${AIRFLOW_UID:-50000}:0"
+    volumes:
+      - ./dags:${AIRFLOW_HOME}/dags:ro
+      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+    ports:
+      - "8080:8080"
+      - "8793:8793"
+    depends_on:
+      redis:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    command: webserver
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "2"
+        max-size: "5m"
+  
+  # 🛠️ Airflow worker service
+  # Description: responsible for executing tasks in the Airflow DAGs.
+  # It can be configured to use different executors (e.g., Celery, LocalExecutor).
+  worker:
+    image: airflow-dbt:v1.0-dev
+    container_name: airflow-worker
+    command: celery worker
+    user: "${AIRFLOW_UID:-50000}:0"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Required to handle warm shutdown of the celery workers properly
+      # See https://airflow.apache.org/docs/docker-stack/entrypoint.html#signal-propagation
+      DUMB_INIT_SETSID: "0"
+    volumes:
+      - ./dags:${AIRFLOW_HOME}/dags
+      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+    depends_on:
+      webserver:
+        condition: service_healthy
+    healthcheck:
+      # yamllint disable rule:line-length
+      test:
+        - "CMD-SHELL"
+        - 'celery --app airflow.providers.celery.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}" || celery --app airflow.executors.celery_executor.app inspect ping -d "celery@$${HOSTNAME}"'
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "2"
+        max-size: "5m"
 
-    scheduler:
-      image: airflow-dbt:v1.0-dev
-      container_name: airflow-scheduler
-      restart: unless-stopped
-      command: scheduler
-      user: "${AIRFLOW_UID:-50000}:0"
-      env_file:
-        - .env
-      volumes:
-        - ./dags:${AIRFLOW_HOME}/dags:ro
-        - ./dbt:${AIRFLOW_HOME}/dbt
-        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
-      depends_on:
-        redis:
-          condition: service_healthy
-        postgres:
-          condition: service_healthy
-      healthcheck:
-        test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
-        start_period: 30s
-      logging:
-        driver: "json-file"
-        options:
-          max-file: "2"
-          max-size: "5m"
-    
-    triggerer:
-      image: airflow-dbt:v1.0-dev
-      container_name: airflow-triggerer
-      command: triggerer
-      user: "${AIRFLOW_UID:-50000}:0"
-      restart: unless-stopped
-      env_file:
-        - .env
-      volumes:
-        - ./dags:${AIRFLOW_HOME}/dags:ro
-        - ./dbt:${AIRFLOW_HOME}/dbt
-        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
-      depends_on:
-        scheduler:
-          condition: service_healthy
-      healthcheck:
-        test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
-        interval: 30s
-        timeout: 10s
-        retries: 5
-        start_period: 30s
-      logging:
-        driver: "json-file"
-        options:
-          max-file: "2"
-          max-size: "5m"
+  # ⏰ Airflow scheduler service
+  # Description: responsible for scheduling tasks and managing the execution of DAGs.
+  scheduler:
+    image: airflow-dbt:v1.0-dev
+    container_name: airflow-scheduler
+    restart: unless-stopped
+    command: scheduler
+    user: "${AIRFLOW_UID:-50000}:0"
+    env_file:
+      - .env
+    volumes:
+      - ./dags:${AIRFLOW_HOME}/dags:ro
+      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "2"
+        max-size: "5m"
+  
+  # 🔔 Airflow triggerer service
+  # Description: responsible for handling deferred tasks in Airflow.
+  triggerer:
+    image: airflow-dbt:v1.0-dev
+    container_name: airflow-triggerer
+    command: triggerer
+    user: "${AIRFLOW_UID:-50000}:0"
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./dags:${AIRFLOW_HOME}/dags:ro
+      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+    depends_on:
+      scheduler:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type TriggererJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "2"
+        max-size: "5m"
 
-    flower:
-      image: mher/flower:latest
-      container_name: airflow-flower
-      command: celery flower
-      profiles:
-        - flower
-      restart: unless-stopped
-      env_file:
-        - .env
-      environment:
-        CELERY_RESULT_BACKEND: ${REDIS_URL}/0
-        CELERY_BROKER_URL: ${REDIS_URL}/0
-      ports:
-        - "5555:5555"
-      depends_on:
-        redis:
-          condition: service_healthy
-        worker:
-          condition: service_healthy
-        init:
-          condition: service_completed_successfully
-      healthcheck:
-        test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
-        interval: 30s
-        timeout: 10s
-        retries: 5
-        start_period: 30s
-      logging:
-        driver: "json-file"
-        options:
-          max-file: "2"
-          max-size: "5m"
+  # 🌼 Flower service
+  # Description: a web-based tool for monitoring and administrating Celery clusters.
+  # It provides a real-time view of task progress and history.
+  flower:
+    image: mher/flower:latest
+    container_name: airflow-flower
+    command: celery flower
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      CELERY_RESULT_BACKEND: ${REDIS_URL}/0
+      CELERY_BROKER_URL: ${REDIS_URL}/0
+    ports:
+      - "5555:5555"
+    depends_on:
+      redis:
+        condition: service_healthy
+      worker:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5555/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "2"
+        max-size: "5m"
 
-  volumes:
-    postgres-db-volume:
+  # 📊 Metabase service
+  # Description: an open-source business intelligence tool that allows users to visualize and analyze data.
+  metabase:
+    image: metabase/metabase:latest
+    hostname: metabase
 
+    volumes:
+      - metabase_data:/metabase3-data
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    container_name: metabase
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    environment:
+      - MB_SITE_URL=http://localhost:3000
+      - MB_REDIRECT_ALL_REQUESTS_TO_HTTPS=true
+      - MB_JETTY_PORT=3000
+      - MB_JETTY_HOST=0.0.0.0
+
+      - MB_DB_MIGRATION_LOCATION=none
+      - MB_DB_TYPE=postgres
+      - MB_DB_DBNAME=metabase
+      - MB_DB_PORT=${POSTGRES_PORT}
+      - MB_DB_USER=${POSTGRES_USER}
+      - MB_DB_PASS=${POSTGRES_PASSWORD}
+      - MB_DB_HOST=${POSTGRES_HOST}
+      - MB_AUTOMIGRATE=true
+  
+    healthcheck:
+      test: curl --fail -I http://127.0.0.1:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-db-volume:
+  metabase_data:

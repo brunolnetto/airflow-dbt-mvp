@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: raw
-    database: spacex_db
+    # database: spacex_db
     schema: raw
     tables:
       - name: spacex_launches
