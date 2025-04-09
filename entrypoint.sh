@@ -124,12 +124,21 @@ create_admin_user() {
 
 main() {
   log_info "Running as user: $(whoami)"
-  wait_for_postgres
-  create_postgres_databases
-  generate_dbt_profile
-  prepare_logs_dir
-  initialize_airflow_db
-  create_admin_user
+
+  steps=(
+    wait_for_postgres
+    create_postgres_databases
+    generate_dbt_profile
+    prepare_logs_dir
+    initialize_airflow_db
+    create_admin_user
+  )
+
+  for step in "${steps[@]}"; do
+    log_info "Executing: $step"
+    $step
+  done
+
   log_info "Airflow initialization completed successfully. Exiting."
 }
 
