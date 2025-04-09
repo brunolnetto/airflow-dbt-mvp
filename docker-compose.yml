@@ -11,7 +11,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h localhost"]
@@ -25,6 +24,8 @@ services:
     image: redis:alpine
     container_name: airflow-redis
     restart: unless-stopped
+    volumes:
+      - redis_data:/redis
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
