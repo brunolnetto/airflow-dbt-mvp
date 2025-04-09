@@ -23,7 +23,11 @@
       container_name: airflow-redis
       restart: unless-stopped
       healthcheck:
-        test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+        start_period: 5s
 
     init:
       build: .
@@ -36,6 +40,7 @@
       volumes:
         - ./dags:${AIRFLOW_HOME}/dags:ro
         - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
         - ./entrypoint.sh:/entrypoint.sh
       entrypoint: ["/bin/bash", "/entrypoint.sh"]
       depends_on:
@@ -62,6 +67,7 @@
       volumes:
         - ./dags:${AIRFLOW_HOME}/dags:ro
         - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
       ports:
         - "8080:8080"
         - "8793:8793"
@@ -86,7 +92,12 @@
     worker:
       image: airflow-dbt:v1.0-dev
       container_name: airflow-worker
-      command: celery worker
+      command: >
+        /bin/bash -c "
+          find /opt/airflow/dbt -type d -exec chmod 775 {} \; &&
+          find /opt/airflow/dbt -type f -exec chmod 664 {} \; &&
+          chown -R airflow:airflow /opt/airflow/dbt &&
+          exec airflow worker"
       user: "${AIRFLOW_UID:-50000}:0"
       restart: unless-stopped
       env_file:
@@ -98,6 +109,7 @@
       volumes:
         - ./dags:${AIRFLOW_HOME}/dags
         - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
       depends_on:
         webserver:
           condition: service_healthy
@@ -127,6 +139,7 @@
       volumes:
         - ./dags:${AIRFLOW_HOME}/dags:ro
         - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
       depends_on:
         redis:
           condition: service_healthy
@@ -152,6 +165,10 @@
       restart: unless-stopped
       env_file:
         - .env
+      volumes:
+        - ./dags:${AIRFLOW_HOME}/dags:ro
+        - ./dbt:${AIRFLOW_HOME}/dbt
+        - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
       depends_on:
         scheduler:
           condition: service_healthy

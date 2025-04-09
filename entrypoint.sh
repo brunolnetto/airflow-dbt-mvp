@@ -27,8 +27,19 @@ wait_for_postgres() {
 
 generate_dbt_profile() {
   log_info "Generating DBT profile..."
-  mkdir -p "${AIRFLOW_HOME}/dbt/profiles"
-  [[ -w "${AIRFLOW_HOME}/dbt/profiles" ]] || chmod u+w "${AIRFLOW_HOME}/dbt/profiles"
+  mkdir -p "${AIRFLOW_HOME}/dbt/profiles" || true
+
+  # Try to fix permissions if not writable
+  if [ ! -w "${AIRFLOW_HOME}/dbt/profiles" ]; then
+    log_warn "No write permission to ${AIRFLOW_HOME}/dbt/profiles. Attempting to fix..."
+    chmod -R u+w "${AIRFLOW_HOME}/dbt/profiles" 2>/dev/null || true
+    chown -R "$(whoami)" "${AIRFLOW_HOME}/dbt/profiles" 2>/dev/null || true
+  fi
+
+  if [ ! -w "${AIRFLOW_HOME}/dbt/profiles" ]; then
+    log_warn "Still no write permission to ${AIRFLOW_HOME}/dbt/profiles. Skipping DBT profile generation."
+    return
+  fi
 
   local output_file="${AIRFLOW_HOME}/dbt/profiles/profiles.yml"
   local temp_file
@@ -44,6 +55,7 @@ generate_dbt_profile() {
     log_info "DBT profile unchanged."
   fi
 }
+
 
 
 prepare_logs_dir() {
