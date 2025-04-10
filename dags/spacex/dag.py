@@ -6,16 +6,15 @@ from spacex.tasks import (
 )
 
 ENTITIES = sorted(set([
-    "capsules", 
-    "cores", 
-    "dragons",  
     "history",
-    "landpads",
     "launches",
+    "capsules", 
+    "cores",
+    "dragons",  
     "payloads",
     "rockets",
-    "roadster",
-    "ships"
+    "ships",
+    "landpads"
 ]))
 
 with DAG(

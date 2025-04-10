@@ -8,7 +8,7 @@ SELECT
   id,
   name,
   CAST(date_utc AS TIMESTAMP) AS launched_at,
-  CAST(success AS BOOL) AS launch_success,  -- ensures this column exists
+  CAST(NULLIF(success, 'null') AS BOOL) AS launch_success,  -- Handle "null" strings
   rocket,
   details,
   flight_number
