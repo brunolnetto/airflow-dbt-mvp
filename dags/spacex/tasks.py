@@ -20,10 +20,7 @@ def get_extract_and_load_task(entity: str):
 def get_dbt_run_task():
     dbt_command = f"""
     set -e
-    echo "Running dbt in {DBT_PATH}"
     cd {DBT_PATH}
-    which dbt
-    dbt --version
     dbt deps
     dbt run --no-write-json
     """
