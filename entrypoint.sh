@@ -84,14 +84,19 @@ generate_dbt_profile() {
   fi
 }
 
+fix_dbt_permissions() {
+  log_info "Fixing permissions for all files inside ${AIRFLOW_HOME}/dbt..."
 
+  # Only change if current owner is not airflow
+  if [ "$(stat -c '%u' "${AIRFLOW_HOME}/dbt" 2>/dev/null)" != "50000" ]; then
+    chown -R airflow: "${AIRFLOW_HOME}/dbt"
+  fi
 
-prepare_logs_dir() {
-  log_info "Ensuring logs directory exists and has correct permissions..."
-  mkdir -p "${AIRFLOW_HOME}/logs/scheduler"
-  chown -R airflow: "${AIRFLOW_HOME}/logs"
-  log_info "Logs directory ready."
+  chmod -R u+rwX,g+rwX "${AIRFLOW_HOME}/dbt"
+  log_info "DBT directory permissions fixed."
 }
+
+
 
 initialize_airflow_db() {
   log_info "Initializing Airflow metadata database..."
@@ -129,7 +134,7 @@ main() {
     wait_for_postgres
     create_postgres_databases
     generate_dbt_profile
-    prepare_logs_dir
+    fix_dbt_permissions
     initialize_airflow_db
     create_admin_user
   )
