@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from typing import List, Dict
 from contextlib import closing
+import json
 
 import pandas as pd
 import psycopg2
@@ -47,11 +48,27 @@ def extract_entity(entity: str) -> List[dict]:
         logging.error(f"❌ Failed to fetch data from {url}: {e}")
         return []
 
-# ========== Transform ==========
+import json
+
+# ========== Transform ========== 
 def transform_generic_data(raw_data: List[dict]) -> pd.DataFrame:
-    logging.info("🔧 Normalizing raw JSON to DataFrame...")
-    df = pd.json_normalize(raw_data)
-    logging.info(f"📊 Transformed {len(df)} rows with {len(df.columns)} columns.")
+    logging.info("🔧 Stringifying values and preparing DataFrame...")
+
+    stringified_data = []
+    for item in raw_data:
+        if isinstance(item, dict):
+            # Stringify values for each key-value pair in the dictionary
+            stringified_item = {k: json.dumps(v) if not isinstance(v, str) else v for k, v in item.items()}
+            stringified_data.append(stringified_item)
+        else:
+            # If the item is already a string, just append it
+            stringified_data.append({"json_data": item})  # assuming item is a stringified JSON object
+
+    # Convert the list of dictionaries to a DataFrame
+    df = pd.DataFrame(stringified_data)
+    
+    logging.info(f"📊 Converted {len(df)} rows with {len(df.columns)} columns.")
+    
     return df
 
 # ========== Load ==========
