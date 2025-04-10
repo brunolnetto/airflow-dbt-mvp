@@ -63,6 +63,7 @@ services:
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags:ro
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
     ports:
       - "8080:8080"
@@ -103,6 +104,7 @@ services:
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
     depends_on:
       webserver:
@@ -135,6 +137,7 @@ services:
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags:ro
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
     depends_on:
       redis:
@@ -166,6 +169,7 @@ services:
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags:ro
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
     depends_on:
       scheduler:
