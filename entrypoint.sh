@@ -1,12 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-
+# Colors for logs
 GREEN="\033[0;32m"
 YELLOW="\033[1;33m"
 RED="\033[0;31m"
 RESET="\033[0m"
 
+# Logging functions
 log_info()  { echo -e "${GREEN}🟢 [INFO] $*${RESET}"; }
 log_warn()  { echo -e "${YELLOW}🟡 [WARN] $*${RESET}"; }
 log_error() { echo -e "${RED}🔴 [ERROR] $*${RESET}" >&2; }
@@ -14,8 +15,11 @@ log_error() { echo -e "${RED}🔴 [ERROR] $*${RESET}" >&2; }
 trap 'log_error "Unexpected error at line $LINENO. Exiting."' ERR
 
 # Ensure required vars are set
-: "${POSTGRES_HOST:?POSTGRES_HOST is required}"
-: "${AIRFLOW_HOME:?AIRFLOW_HOME is required}"
+ensure_var_set() {
+  : "${1:?$1 is required}"
+}
+ensure_var_set "POSTGRES_HOST"
+ensure_var_set "AIRFLOW_HOME"
 
 wait_for_postgres() {
   log_info "Waiting for PostgreSQL to become available at $POSTGRES_HOST:${POSTGRES_PORT:-5432}..."
@@ -31,13 +35,11 @@ create_postgres_databases() {
     return
   fi
 
-  echo "$POSTGRES_DATABASES" | grep -q ',' || POSTGRES_DATABASES="$POSTGRES_DATABASES,"
-
   log_info "🔧 Creating extra PostgreSQL databases (if not existing)..."
-
+  
   IFS=',' read -ra DBS <<< "$POSTGRES_DATABASES"
   for db in "${DBS[@]}"; do
-    db_trimmed="$(echo "$db" | xargs)"  # remove espaços extras
+    db_trimmed="$(echo "$db" | xargs)"
     if [ -z "$db_trimmed" ]; then
       continue
     fi
@@ -57,14 +59,11 @@ generate_dbt_profile() {
   log_info "Generating DBT profile..."
   mkdir -p "${AIRFLOW_HOME}/dbt/profiles" || true
 
-  # Try to fix permissions if not writable
+  # Fix permissions if not writable
   if [ ! -w "${AIRFLOW_HOME}/dbt/profiles" ]; then
     log_warn "No write permission to ${AIRFLOW_HOME}/dbt/profiles. Attempting to fix..."
-    if chown -R "$(id -u):$(id -g)" "${AIRFLOW_HOME}/dbt/profiles"; then
-      log_info "Permissions fixed. Proceeding with DBT profile generation."
-    else
+    if ! chown -R "$(id -u):$(id -g)" "${AIRFLOW_HOME}/dbt/profiles"; then
       log_error "Failed to fix permissions for ${AIRFLOW_HOME}/dbt/profiles. Exiting."
-      exit 1
     fi
   fi
 
@@ -100,7 +99,6 @@ initialize_airflow_db() {
   log_info "Airflow metadata DB initialized successfully."
 }
 
-
 create_airflow_admin_user() {
   if airflow users list | grep -q "${AIRFLOW_ADMIN_USERNAME:-admin}"; then
     log_info "Admin user already exists on Airflow."
@@ -117,54 +115,27 @@ create_airflow_admin_user() {
   fi
 }
 
-# Fix permissions for Airflow directories (scheduler, dbt, etc.)
-fix_airflow_permissions() {
-  log_info "Fixing permissions for Airflow directories..."
-
-  # Airflow dags directory
-  chown -R airflow:airflow /opt/airflow/dags
-  chmod -R 777 /opt/airflow/dags
-
-  # Airflow scheduler logs directory
-  mkdir -p /opt/airflow/logs/scheduler
-  chown -R airflow:airflow /opt/airflow/logs/scheduler
-  chmod -R 755 /opt/airflow/logs/scheduler
-
-  # Airflow DBT directory
-  chown -R airflow:airflow /opt/airflow/dbt
-  chmod -R u+rwX,g+rwX /opt/airflow/dbt
-
-  # List permissions
-  log_info "Airflow directories permissions:"
-  ls -ld /opt/airflow/dags
-  ls -ld /opt/airflow/logs/scheduler
-  ls -ld /opt/airflow/dbt
-
-  log_info "Permissions for Airflow directories fixed."
-}
-
 main() {
   log_info "Running as user: $(whoami)"
 
+  # Execute each step
   steps=(
     wait_for_postgres
     create_postgres_databases
     generate_dbt_profile
-    fix_airflow_permissions
     initialize_airflow_db
     create_airflow_admin_user
   )
 
   for step in "${steps[@]}"; do
-    log_info "Executing: $step"
     $step
   done
 
-  log_info "Airflow initialization completed successfully. Exiting."
+  log_info "Airflow initialization completed successfully."
 }
 
+# Main execution
 if ! main "$@"; then
   log_error "Airflow bootstrap failed"
   exit 1
 fi
-
