@@ -6,6 +6,6 @@ SELECT
     COUNT(*) FILTER (WHERE launch_success)::numeric / COUNT(*) * 100, 
     2
   ) AS success_rate_pct
-FROM {{ ref('stg_spacex_launches') }}
+FROM {{ ref('stg_launches') }}
 GROUP BY launch_year
 ORDER BY launch_year

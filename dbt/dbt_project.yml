@@ -33,6 +33,10 @@ models:
   airflow_dbt:
     # Config indicated by + and applies to all files under models/example/
     staging:
+      +schema: staging
       +materialized: view
     mart:
-      +materialized: view
+      +schema: analytics
+      +materialized: table
+    +schema: ''  # <--- disables the raw_ prefix
+
