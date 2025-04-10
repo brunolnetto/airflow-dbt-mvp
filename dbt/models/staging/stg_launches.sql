@@ -1,7 +1,7 @@
 -- dbt/models/staging/stg_spacex_launches.sql
 
 WITH source AS (
-  SELECT * FROM {{ source('raw', 'spacex_launches') }}
+  SELECT * FROM {{ source('raw', 'launches') }}
 )
 
 SELECT

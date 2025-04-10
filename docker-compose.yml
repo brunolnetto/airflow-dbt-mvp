@@ -42,9 +42,9 @@ services:
     env_file:
       - .env
     volumes:
-      - ./dags:${AIRFLOW_HOME}/dags:ro
+      - ./dags:${AIRFLOW_HOME}/dags
+      - ./dbt:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
       - ./entrypoint.sh:/entrypoint.sh
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
     depends_on:
@@ -57,14 +57,13 @@ services:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-webserver
     restart: unless-stopped
+    user: "${AIRFLOW_UID:-50000}:0"
     env_file:
       - .env
-    user: "${AIRFLOW_UID:-50000}:0"
     volumes:
-      - ./dags:${AIRFLOW_HOME}/dags:ro
-      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
-      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+      - ./dbt:${AIRFLOW_HOME}/dbt
     ports:
       - "8080:8080"
       - "8793:8793"
@@ -103,9 +102,8 @@ services:
       DUMB_INIT_SETSID: "0"
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags
-      - ./dbt:${AIRFLOW_HOME}/dbt
       - ./logs:${AIRFLOW_HOME}/logs
-      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+      - ./dbt:${AIRFLOW_HOME}/dbt
     depends_on:
       webserver:
         condition: service_healthy
@@ -135,15 +133,16 @@ services:
     env_file:
       - .env
     volumes:
-      - ./dags:${AIRFLOW_HOME}/dags:ro
-      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
-      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+      - ./dbt:${AIRFLOW_HOME}/dbt
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
       interval: 30s
@@ -167,10 +166,9 @@ services:
     env_file:
       - .env
     volumes:
-      - ./dags:${AIRFLOW_HOME}/dags:ro
-      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
-      - ./dbt/profiles:${AIRFLOW_HOME}/dbt/profiles
+      - ./dbt:${AIRFLOW_HOME}/dbt
     depends_on:
       scheduler:
         condition: service_healthy

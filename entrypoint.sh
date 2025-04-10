@@ -44,7 +44,7 @@ create_postgres_databases() {
 
     log_info "🔍 Checking existence of database '$db_trimmed'..."
     if PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" -tc "SELECT 1 FROM pg_database WHERE datname = '$db_trimmed'" | grep -q 1; then
-      log_info "✅ Database '$db_trimmed' already exists. Skipping."
+      log_warn "Database '$db_trimmed' already exists. Skipping."
     else
       log_info "📦 Creating database '$db_trimmed'..."
       PGPASSWORD="$POSTGRES_PASSWORD" createdb -U "$POSTGRES_USER" -h "$POSTGRES_HOST" -p "${POSTGRES_PORT:-5432}" "$db_trimmed"
@@ -60,8 +60,12 @@ generate_dbt_profile() {
   # Try to fix permissions if not writable
   if [ ! -w "${AIRFLOW_HOME}/dbt/profiles" ]; then
     log_warn "No write permission to ${AIRFLOW_HOME}/dbt/profiles. Attempting to fix..."
-    chmod -R u+w "${AIRFLOW_HOME}/dbt/profiles" 2>/dev/null || true
-    chown -R "$(whoami)" "${AIRFLOW_HOME}/dbt/profiles" 2>/dev/null || true
+    if chown -R "$(id -u):$(id -g)" "${AIRFLOW_HOME}/dbt/profiles"; then
+      log_info "Permissions fixed. Proceeding with DBT profile generation."
+    else
+      log_error "Failed to fix permissions for ${AIRFLOW_HOME}/dbt/profiles. Exiting."
+      exit 1
+    fi
   fi
 
   if [ ! -w "${AIRFLOW_HOME}/dbt/profiles" ]; then
@@ -84,20 +88,6 @@ generate_dbt_profile() {
   fi
 }
 
-fix_dbt_permissions() {
-  log_info "Fixing permissions for all files inside ${AIRFLOW_HOME}/dbt..."
-
-  # Only change if current owner is not airflow
-  if [ "$(stat -c '%u' "${AIRFLOW_HOME}/dbt" 2>/dev/null)" != "50000" ]; then
-    chown -R airflow: "${AIRFLOW_HOME}/dbt"
-  fi
-
-  chmod -R u+rwX,g+rwX "${AIRFLOW_HOME}/dbt"
-  log_info "DBT directory permissions fixed."
-}
-
-
-
 initialize_airflow_db() {
   log_info "Initializing Airflow metadata database..."
 
@@ -111,9 +101,9 @@ initialize_airflow_db() {
 }
 
 
-create_admin_user() {
+create_airflow_admin_user() {
   if airflow users list | grep -q "${AIRFLOW_ADMIN_USERNAME:-admin}"; then
-    log_info "Admin user already exists."
+    log_info "Admin user already exists on Airflow."
   else
     log_info "Creating Airflow admin user..."
     airflow users create \
@@ -127,6 +117,32 @@ create_admin_user() {
   fi
 }
 
+# Fix permissions for Airflow directories (scheduler, dbt, etc.)
+fix_airflow_permissions() {
+  log_info "Fixing permissions for Airflow directories..."
+
+  # Airflow dags directory
+  chown -R airflow:airflow /opt/airflow/dags
+  chmod -R 777 /opt/airflow/dags
+
+  # Airflow scheduler logs directory
+  mkdir -p /opt/airflow/logs/scheduler
+  chown -R airflow:airflow /opt/airflow/logs/scheduler
+  chmod -R 755 /opt/airflow/logs/scheduler
+
+  # Airflow DBT directory
+  chown -R airflow:airflow /opt/airflow/dbt
+  chmod -R u+rwX,g+rwX /opt/airflow/dbt
+
+  # List permissions
+  log_info "Airflow directories permissions:"
+  ls -ld /opt/airflow/dags
+  ls -ld /opt/airflow/logs/scheduler
+  ls -ld /opt/airflow/dbt
+
+  log_info "Permissions for Airflow directories fixed."
+}
+
 main() {
   log_info "Running as user: $(whoami)"
 
@@ -134,9 +150,9 @@ main() {
     wait_for_postgres
     create_postgres_databases
     generate_dbt_profile
-    fix_dbt_permissions
+    fix_airflow_permissions
     initialize_airflow_db
-    create_admin_user
+    create_airflow_admin_user
   )
 
   for step in "${steps[@]}"; do
