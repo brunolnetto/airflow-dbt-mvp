@@ -118,7 +118,15 @@ create_airflow_admin_user() {
 main() {
   log_info "Running as user: $(whoami)"
 
-  # Execute each step
+  # Guard: check if sudo is needed (e.g., write to AIRFLOW_HOME)
+  if [ ! -w "$AIRFLOW_HOME" ]; then
+    log_warn "Current user lacks write permissions to $AIRFLOW_HOME"
+    if command -v sudo &> /dev/null; then
+      log_warn "You may need to run this script with: sudo $0"
+    fi
+  fi
+
+  # Execute each step with individual error handling
   steps=(
     wait_for_postgres
     create_postgres_databases
@@ -128,10 +136,14 @@ main() {
   )
 
   for step in "${steps[@]}"; do
-    $step
+    log_info "▶️ Running step: $step"
+    if ! $step; then
+      log_error "❌ Step '$step' failed. Check logs above for details."
+      exit 1
+    fi
   done
 
-  log_info "Airflow initialization completed successfully."
+  log_info "✅ Airflow initialization completed successfully."
 }
 
 # Main execution
