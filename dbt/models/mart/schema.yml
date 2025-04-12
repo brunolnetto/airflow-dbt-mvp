@@ -3,6 +3,7 @@ version: 2
 models:
   - name: launch_metrics
     description: "Aggregated metrics for SpaceX launches, grouped by year."
+    tags: ['mart']
     columns:
       - name: launch_year
         description: "The year in which launches occurred."

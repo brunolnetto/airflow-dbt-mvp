@@ -48,8 +48,6 @@ def extract_entity(entity: str) -> List[dict]:
         logging.error(f"❌ Failed to fetch data from {url}: {e}")
         return []
 
-import json
-
 # ========== Transform ========== 
 def transform_generic_data(raw_data: List[dict]) -> pd.DataFrame:
     logging.info("🔧 Stringifying values and preparing DataFrame...")

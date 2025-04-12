@@ -2,19 +2,20 @@ from airflow import DAG
 from spacex.config import DEFAULT_ARGS
 from spacex.tasks import (
     get_extract_and_load_task,
-    get_dbt_run_task
+    get_dbt_run_task,
+    get_dbt_test_task  
 )
 
+from os import environ
+from dotenv import load_dotenv
+
+load_dotenv()
+target_env = environ.get("ENVIRONMENT", "dev")
+assert target_env in {"dev", "prod"}, f"Invalid target_env: {target_env}"
+
 ENTITIES = sorted(set([
-    "history",
-    "launches",
-    "capsules", 
-    "cores",
-    "dragons",  
-    "payloads",
-    "rockets",
-    "ships",
-    "landpads"
+    "history", "launches", "capsules", "cores", "dragons",  
+    "payloads", "rockets", "ships", "landpads"
 ]))
 
 with DAG(
@@ -31,6 +32,14 @@ with DAG(
         for entity in ENTITIES
     ]
 
-    run_dbt = get_dbt_run_task()
+    run_dbt_staging = get_dbt_run_task(
+        target_env=target_env, 
+        dbt_select="tag:staging"
+    )
+    run_dbt_mart = get_dbt_run_task(
+        target_env=target_env, 
+        dbt_select="tag:mart"
+    )
+    run_dbt_tests = get_dbt_test_task(target_env=target_env)
 
-    extract_and_load_tasks >> run_dbt
+    extract_and_load_tasks >> run_dbt_staging >> run_dbt_mart >> run_dbt_tests
