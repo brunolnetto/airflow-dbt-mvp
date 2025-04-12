@@ -1,27 +1,38 @@
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
+from airflow.decorators import task, TaskGroup
 
-from spacex.pipelines.spacex_etl import run_spacex_pipeline
+from spacex.pipelines.spacex_etl import (
+    extract_spacex_data, 
+    transform_spacex_data, 
+    load_spacex_data,
+)
 from spacex.config import DBT_PATH
 
+
 logger = LoggingMixin().log
+
+@task()
+def extract_task(entity: str) -> str:
+    extract_spacex_data(entity)
+    return entity
+
+@task()
+def transform_task(entity: str) -> str:
+    df = transform_spacex_data(entity)
+    if df.empty:
+        raise ValueError(f"Transformed data for entity '{entity}' is empty.")
+    return entity
+
+@task()
+def load_task(entity: str) -> None:
+    load_spacex_data(entity)
 
 def get_extract_and_load_task(entity: str):
-    """
-    Create a task to extract and load a specific entity from SpaceX API to PostgreSQL.
-    """
-    return PythonOperator(
-        task_id=f"extract_and_load_{entity}",
-        python_callable=run_spacex_pipeline,
-        op_args=[entity],  # Pass entity as argument
-    )
-
-from airflow.operators.bash import BashOperator
-from airflow.utils.log.logging_mixin import LoggingMixin
-from spacex.config import DBT_PATH
-
-logger = LoggingMixin().log
+    extracted = extract_task(entity)
+    transformed = transform_task(extracted)
+    return load_task(transformed)
 
 def get_dbt_run_task(target_env="dev", dbt_select=None):
     dbt_command = f"cd {DBT_PATH} && dbt deps && dbt run --no-write-json --target {target_env}"

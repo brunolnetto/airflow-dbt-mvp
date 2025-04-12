@@ -164,26 +164,46 @@ def upload_to_postgres(df: pd.DataFrame, conn_params: Dict[str, str], entity: st
         raise
 
 # ========== Pipeline ==========
-def run_spacex_pipeline(entity: str) -> None:
-    start = datetime.now()
-    logging.info(f"🚀 Starting ETL for entity: {entity}")
+def extract_spacex_data(entity: str) -> List[dict]:
+    logging.info(f"🚀 [Extract] Starting data extraction for entity: {entity}")
+    raw_data = extract_entity(entity)
+    if not raw_data:
+        logging.warning(f"⚠️ No data fetched for entity: {entity}")
+        return []
+
+    # Save raw data to disk (or S3, etc.) for downstream processing
+    os.makedirs("data/raw", exist_ok=True)
+    with open(f"data/raw/{entity}.json", "w") as f:
+        json.dump(raw_data, f)
+    logging.info(f"💾 Raw data saved to data/raw/{entity}.json")
+    return raw_data
+
+
+def transform_spacex_data(entity: str) -> pd.DataFrame:
+    logging.info(f"🔧 [Transform] Starting transformation for entity: {entity}")
+    
+    with open(f"data/raw/{entity}.json", "r") as f:
+        raw_data = json.load(f)
+
+    df = transform_generic_data(raw_data)
+
+    if df.empty:
+        logging.warning(f"⚠️ Transformed DataFrame for entity '{entity}' is empty.")
+    else:
+        os.makedirs("data/processed", exist_ok=True)
+        df.to_parquet(f"data/processed/{entity}.parquet")
+        logging.info(f"📦 Transformed data saved to data/processed/{entity}.parquet")
+    
+    return df
+
+
+def load_spacex_data(entity: str) -> None:
+    logging.info(f"⬆️ [Load] Loading data for entity: {entity}")
+    df = pd.read_parquet(f"data/processed/{entity}.parquet")
 
     conn_params = load_conn_params()
     ensure_database_exists(conn_params)
 
-    raw_data = extract_entity(entity)
-    if not raw_data:
-        logging.warning("⚠️ No data fetched.")
-        return
-
-    df = transform_generic_data(raw_data)
-    if df.empty:
-        logging.warning("⚠️ Transformed DataFrame is empty.")
-        return
-
     upload_to_postgres(df, conn_params, entity)
-
-    elapsed = (datetime.now() - start).total_seconds()
-    logging.info(f"🎯 ETL for '{entity}' finished in {elapsed:.2f}s")
 
 
