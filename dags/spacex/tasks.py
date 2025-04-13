@@ -1,12 +1,12 @@
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from airflow.utils.log.logging_mixin import LoggingMixin
-from airflow.decorators import task, TaskGroup
+from airflow.decorators import task
 
 from spacex.pipelines.spacex_etl import (
     extract_spacex_data, 
     transform_spacex_data, 
-    load_spacex_data,
+    load_spacex_data,   
 )
 from spacex.config import DBT_PATH
 

@@ -34,11 +34,11 @@ with DAG(
 
     run_dbt_staging = get_dbt_run_task(
         target_env=target_env, 
-        dbt_select="tag:staging"
+        dbt_select="staging"
     )
     run_dbt_mart = get_dbt_run_task(
         target_env=target_env, 
-        dbt_select="tag:mart"
+        dbt_select="mart"
     )
     run_dbt_tests = get_dbt_test_task(target_env=target_env)
 
