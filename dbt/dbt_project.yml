@@ -38,5 +38,4 @@ models:
     mart:
       +schema: analytics
       +materialized: table
-    +schema: ''  # <--- disables the raw_ prefix
 
