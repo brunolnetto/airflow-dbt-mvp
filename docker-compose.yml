@@ -40,6 +40,8 @@ services:
     ports:
       - "9000:9000"
       - "9090:9090"
+    env_file:
+      - .env
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}

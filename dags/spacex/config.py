@@ -1,5 +1,6 @@
 # dags/spacex/config.py
 from datetime import datetime, timedelta
+import logging
 import os
 
 PROJECT_DIR = os.getenv("AIRFLOW_HOME", "/opt/airflow")
@@ -12,3 +13,12 @@ DEFAULT_ARGS = {
     "retries": 1,
     "retry_delay": timedelta(minutes=5),
 }
+
+# Logging configuration
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+ENVIRONMENT = os.getenv("ENVIRONMENT", "dev")
+DEBUG = ENVIRONMENT == "dev"
+
+if DEBUG:
+    logging.getLogger().setLevel(logging.DEBUG)

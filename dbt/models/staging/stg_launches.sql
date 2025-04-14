@@ -8,7 +8,10 @@ SELECT
   id,
   name,
   CAST(date_utc AS TIMESTAMP) AS launched_at,
-  CAST(NULLIF(success, 'null') AS BOOL) AS launch_success,  -- Handle "null" strings
+  CASE
+    WHEN LOWER(success::text) = 'true' THEN TRUE
+    ELSE FALSE
+  END AS launch_success,
   rocket,
   details,
   flight_number

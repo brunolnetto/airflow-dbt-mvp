@@ -1,53 +1,48 @@
-from airflow.operators.python import PythonOperator
+# tasks.py
+import logging
 from airflow.operators.bash import BashOperator
-from airflow.utils.log.logging_mixin import LoggingMixin
 from airflow.decorators import task
-
-from spacex.pipelines.spacex_etl import (
-    extract_spacex_data, 
-    transform_spacex_data, 
-    load_spacex_data,   
-)
-from spacex.config import DBT_PATH
+from .config import DBT_PATH
+from .core.pipeline import SpaceXPipeline
+from .core.storage import MinIOStorage, MinIOConfig
 
 
-logger = LoggingMixin().log
+def get_pipeline_task(entity: str):
+    """Single-task wrapper around pipeline.run() for the given entity."""
+    
+    @task(task_id=f"run_pipeline_{entity}")
+    def run_pipeline_task() -> None:
+        pipeline = SpaceXPipeline(entity, MinIOStorage(config=MinIOConfig()))
+        pipeline.run()
 
-@task()
-def extract_task(entity: str) -> str:
-    extract_spacex_data(entity)
-    return entity
+    return run_pipeline_task
 
-@task()
-def transform_task(entity: str) -> str:
-    df = transform_spacex_data(entity)
-    if df.empty:
-        raise ValueError(f"Transformed data for entity '{entity}' is empty.")
-    return entity
 
-@task()
-def load_task(entity: str) -> None:
-    load_spacex_data(entity)
+def log_dbt_failure(context):
+    """Callback to log DBT task failures."""
+    task_instance = context['task_instance']
+    logging.error(f"DBT Task Failed: {task_instance.task_id}, Reason: {context['exception']}")
 
-def get_extract_and_load_task(entity: str):
-    extracted = extract_task(entity)
-    transformed = transform_task(extracted)
-    return load_task(transformed)
 
 def get_dbt_run_task(target_env="dev", dbt_select=None):
+    """Create a DBT run task."""
     dbt_command = f"cd {DBT_PATH} && dbt deps && dbt run --no-write-json --target {target_env}"
     if dbt_select:
         dbt_command += f" --select {dbt_select}"
 
-    return BashOperator(
+    dbt_run_task = BashOperator(
         task_id=f"dbt_run_{dbt_select or 'all'}",
         bash_command=dbt_command,
     )
 
+    dbt_run_task.on_failure_callback = log_dbt_failure
+    return dbt_run_task
+
+
 def get_dbt_test_task(target_env="dev"):
+    """Create a DBT test task."""
     dbt_test_command = f"cd {DBT_PATH} && dbt test --target {target_env}"
     return BashOperator(
         task_id="dbt_test",
         bash_command=dbt_test_command,
     )
-

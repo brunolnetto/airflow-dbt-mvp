@@ -1,5 +1,8 @@
 logs/
 
+/data/*
+!/data/.gitkeep
+
 # Python
 __pycache__/
 *.pyc
