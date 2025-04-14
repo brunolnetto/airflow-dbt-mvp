@@ -10,3 +10,12 @@ airflow_dbt:
       dbname: ${DBT_DB}
       schema: ${DBT_SCHEMA}
       retries: 3
+    prod:
+      type: postgres
+      host: ${POSTGRES_HOST}
+      user: ${POSTGRES_USER}
+      password: ${POSTGRES_PASSWORD}
+      port: ${POSTGRES_PORT}
+      dbname: ${DBT_DB}
+      schema: ${DBT_SCHEMA}
+      retries: 3

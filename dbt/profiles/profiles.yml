@@ -10,3 +10,12 @@ airflow_dbt:
       dbname: spacex_db
       schema: raw
       retries: 3
+    prod:
+      type: postgres
+      host: postgres
+      user: airflow
+      password: airflow
+      port: 5432
+      dbname: spacex_db
+      schema: raw
+      retries: 3
