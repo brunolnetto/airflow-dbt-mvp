@@ -20,7 +20,7 @@ ENTITIES = sorted({
 })
 
 with DAG(
-    dag_id="spacex_etl_dag",
+    dag_id=f"spacex__etl__{target_env}",
     default_args=DEFAULT_ARGS,
     description="🚀 SpaceX ETL pipeline: API -> Postgres -> DBT",
     schedule_interval="@hourly",
@@ -31,8 +31,8 @@ with DAG(
     # Call the returned function to get task instances
     pipeline_tasks = [get_pipeline_task(entity)() for entity in ENTITIES]
 
-    dbt_staging = get_dbt_run_task(target_env=target_env, dbt_select="staging")
-    dbt_mart = get_dbt_run_task(target_env=target_env, dbt_select="mart")
+    dbt_staging = get_dbt_run_task(target_env=target_env, dbt_select="staging.spacex")
+    dbt_mart = get_dbt_run_task(target_env=target_env, dbt_select="mart.spacex")
     dbt_test = get_dbt_test_task(target_env=target_env)
 
     pipeline_tasks >> dbt_staging >> dbt_mart >> dbt_test

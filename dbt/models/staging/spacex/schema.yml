@@ -1,0 +1,249 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: capsules
+      - name: cores
+      - name: dragons
+      - name: history
+      - name: landpads
+      - name: launches
+      - name: payloads
+      - name: rockets
+      - name: ships
+
+models:
+  # Staging Model for capsules
+  - name: stg_capsules
+    description: "Staging model for SpaceX capsules data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the capsule."
+        tests:
+          - not_null
+          - unique
+      - name: serial
+        description: "Unique identifier for the capsule."
+        tests:
+          - not_null
+      - name: status
+        description: "Current status of the capsule."
+      - name: reuse_count
+        description: "Number of times the capsule has been reused."
+      - name: water_landings
+        description: "Number of water landings."
+      - name: land_landings
+        description: "Number of land-based landings."
+      - name: last_update
+        description: "Timestamp of the last update to the capsule information."
+      - name: launches
+        description: "Number of launches associated with the capsule."
+
+  # Staging Model for cores
+  - name: stg_cores
+    description: "Staging model for SpaceX cores data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the core."
+        tests:
+          - not_null
+          - unique
+      - name: serial
+        description: "Unique identifier for the core."
+        tests:
+          - not_null
+      - name: status
+        description: "Current status of the core."
+      - name: reuse_count
+        description: "Number of times the core has been reused."
+      - name: rtls_attempts
+        description: "Number of attempts for RTLS (Rocket Landing Site)."
+      - name: rtls_landings
+        description: "Number of successful RTLS landings."
+      - name: asds_attempts
+        description: "Number of attempts for ASDS (Autonomous Spaceport Drone Ship)."
+      - name: asds_landings
+        description: "Number of successful ASDS landings."
+      - name: last_update
+        description: "Timestamp of the last update to the core information."
+      - name: launches
+        description: "Number of launches associated with the core."
+
+  # Staging Model for dragons
+  - name: stg_dragons
+    description: "Staging model for SpaceX dragons data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the Dragon spacecraft."
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "Name of the Dragon spacecraft."
+        tests:
+          - not_null
+      - name: type
+        description: "Type of the Dragon spacecraft."
+      - name: active
+        description: "Whether the Dragon spacecraft is active."
+      - name: crew_capacity
+        description: "Maximum crew capacity for the Dragon spacecraft."
+      - name: dry_mass_kg
+        description: "Dry mass of the Dragon spacecraft in kilograms."
+      - name: height_w_trunk
+        description: "Height of the Dragon spacecraft including the trunk."
+      - name: diameter
+        description: "Diameter of the Dragon spacecraft."
+      - name: first_flight
+        description: "Date of the first flight for the Dragon spacecraft."
+      - name: flickr_images
+        description: "URLs for Flickr images of the Dragon spacecraft."
+
+  # Staging Model for history
+  - name: stg_history
+    description: "Staging model for SpaceX historical data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the history event."
+        tests:
+          - not_null
+          - unique
+      - name: title
+        description: "Title of the history event."
+      - name: event_date_utc
+        description: "Timestamp of the event in UTC."
+      - name: event_date_unix
+        description: "Timestamp of the event in Unix format."
+      - name: details
+        description: "Details of the historical event."
+
+  # Staging Model for landpads
+  - name: stg_landpads
+    description: "Staging model for SpaceX landpads data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the landpad."
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "Name of the landpad."
+      - name: status
+        description: "Status of the landpad."
+      - name: locality
+        description: "Locality where the landpad is located."
+      - name: latitude
+        description: "Latitude of the landpad."
+      - name: longitude
+        description: "Longitude of the landpad."
+
+  # Staging Model for launches
+  - name: stg_launches
+    description: "Staging model for SpaceX launches, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the launch."
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "Name of the mission."
+        tests:
+          - not_null
+      - name: launched_at
+        description: "Datetime of the launch (UTC)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['timestamp']
+      - name: launch_success
+        description: "Boolean indicating launch success."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['true', 'false', 't', 'f', '1', '0']
+      - name: rocket
+        description: "Rocket ID."
+        tests:
+          - not_null
+      - name: details
+        description: "Additional mission details."
+      - name: flight_number
+        description: "Flight number of the launch."
+
+  # Staging Model for payloads
+  - name: stg_payloads
+    description: "Staging model for SpaceX payloads data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the payload."
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "Name of the payload."
+      - name: type
+        description: "Type of payload."
+      - name: mass_kg
+        description: "Mass of the payload in kilograms."
+      - name: mass_lbs
+        description: "Mass of the payload in pounds."
+      - name: orbit
+        description: "Orbit of the payload."
+      - name: customers
+        description: "Customers associated with the payload."
+
+  # Staging Model for rockets
+  - name: stg_rockets
+    description: "Staging model for SpaceX rockets data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the rocket."
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "Name of the rocket."
+      - name: height
+        description: "Height of the rocket."
+      - name: diameter
+        description: "Diameter of the rocket."
+      - name: mass
+        description: "Mass of the rocket."
+      - name: first_flight
+        description: "Date of the first flight for the rocket."
+      - name: boosters
+        description: "Number of boosters used by the rocket."
+
+  # Staging Model for ships
+  - name: stg_ships
+    description: "Staging model for SpaceX ships data, cleans and types source data."
+    tags: ['staging']
+    columns:
+      - name: id
+        description: "Primary key for the ship."
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "Name of the ship."
+      - name: type
+        description: "Type of ship."
+      - name: speed_kn
+        description: "Speed of the ship in knots."
+      - name: status
+        description: "Current status of the ship."
+      - name: latitude
+        description: "Latitude of the ship."
+      - name: longitude
+        description: "Longitude of the ship."

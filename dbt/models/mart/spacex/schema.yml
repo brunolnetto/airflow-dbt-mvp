@@ -1,0 +1,187 @@
+version: 2
+
+models:
+  - name: mart_capsule_status_summary
+    description: "Summary of capsule status and its reuse count."
+    tags: ['mart']
+    columns:
+      - name: serial
+        description: "The unique serial identifier for the capsule."
+        tests:
+          - not_null
+      - name: status
+        description: "The current status of the capsule."
+      - name: reuse_count
+        description: "The number of times the capsule has been reused."
+      - name: water_landings
+        description: "Number of water landings performed by the capsule."
+      - name: land_landings
+        description: "Number of land landings performed by the capsule."
+
+  - name: mart_launch_success_by_rocket_and_capsule
+    description: "Launch success stats aggregated by rocket and capsule."
+    tags: ['mart']
+    columns:
+      - name: rocket_name
+        description: "The name of the rocket."
+        tests:
+          - not_null
+      - name: capsule_serial
+        description: "The serial number of the capsule."
+      - name: total_launches
+        description: "The total number of launches for the rocket and capsule combination."
+        tests:
+          - not_null
+      - name: successful_launches
+        description: "The total number of successful launches for the rocket and capsule combination."
+      - name: success_rate_pct
+        description: "The percentage of successful launches for the rocket and capsule combination."
+        tests:
+          - not_null
+
+  - name: mart_rocket_reuse_by_type
+    description: "Rocket reuse statistics grouped by rocket type."
+    tags: ['mart']
+    columns:
+      - name: rocket_type
+        description: "The type of the rocket."
+        tests:
+          - not_null
+      - name: reuse_count
+        description: "The number of times rockets of this type have been reused."
+      - name: rtls_landings
+        description: "The number of RTLS landings for rockets of this type."
+      - name: asds_landings
+        description: "The number of ASDS landings for rockets of this type."
+
+  - name: mart_capsules_usage_stats
+    description: "Statistics on capsule usage, focusing on reuse and landing types."
+    tags: ['mart']
+    columns:
+      - name: serial
+        description: "The unique serial identifier for the capsule."
+        tests:
+          - not_null
+      - name: reuse_count
+        description: "The number of times the capsule has been reused."
+      - name: water_landings
+        description: "Number of water landings performed by the capsule."
+      - name: land_landings
+        description: "Number of land landings performed by the capsule."
+
+  - name: mart_launch_success_by_year
+    description: "Aggregated launch success metrics by year."
+    tags: ['mart']
+    columns:
+      - name: launch_year
+        description: "The year in which launches occurred."
+        tests:
+          - not_null
+      - name: total_launches
+        description: "The total number of launches in that year."
+        tests:
+          - not_null
+      - name: successful_launches
+        description: "The number of successful launches in that year."
+        tests:
+          - not_null
+      - name: success_rate_pct
+        description: "The percentage of successful launches in that year."
+        tests:
+          - not_null
+
+  - name: mart_rockets_launch_stats
+    description: "Statistics on rocket launches, including total and successful launches."
+    tags: ['mart']
+    columns:
+      - name: rocket_name
+        description: "The name of the rocket."
+        tests:
+          - not_null
+      - name: total_launches
+        description: "The total number of launches for the rocket."
+        tests:
+          - not_null
+      - name: successful_launches
+        description: "The total number of successful launches for the rocket."
+        tests:
+          - not_null
+      - name: success_rate_pct
+        description: "The percentage of successful launches for the rocket."
+        tests:
+          - not_null
+
+  - name: mart_cores_reuse_stats
+    description: "Statistics on core reuse, including RTLS and ASDS landings."
+    tags: ['mart']
+    columns:
+      - name: serial
+        description: "The unique serial identifier for the core."
+        tests:
+          - not_null
+      - name: status
+        description: "The current status of the core."
+      - name: reuse_count
+        description: "The number of times the core has been reused."
+      - name: rtls_landings
+        description: "The number of RTLS landings performed by the core."
+      - name: asds_landings
+        description: "The number of ASDS landings performed by the core."
+
+  - name: mart_launch_success_rate_by_year
+    description: "The success rate of launches aggregated by year."
+    tags: ['mart']
+    columns:
+      - name: launch_year
+        description: "The year in which launches occurred."
+        tests:
+          - not_null
+      - name: success_rate_pct
+        description: "The percentage of successful launches in that year."
+        tests:
+          - not_null
+
+  - name: mart_ships_location_stats
+    description: "Summary of ships' location statistics, filtered by active status."
+    tags: ['mart']
+    columns:
+      - name: name
+        description: "The name of the ship."
+        tests:
+          - not_null
+      - name: latitude
+        description: "The latitude of the ship's current location."
+      - name: longitude
+        description: "The longitude of the ship's current location."
+      - name: status
+        description: "The current operational status of the ship."
+
+  - name: mart_history_by_launch_year
+    description: "Historical events related to launches, aggregated by year."
+    tags: ['mart']
+    columns:
+      - name: launch_year
+        description: "The year in which the launch occurred."
+        tests:
+          - not_null
+      - name: history_title
+        description: "The title of the historical event."
+      - name: event_date_utc
+        description: "The UTC date and time of the event."
+
+  - name: mart_payload_mass_by_orbit
+    description: "Aggregated payload mass statistics by orbit."
+    tags: ['mart']
+    columns:
+      - name: orbit
+        description: "The type of orbit the payload is launched into."
+        tests:
+          - not_null
+      - name: total_payloads
+        description: "The total number of payloads launched into the orbit."
+        tests:
+          - not_null
+      - name: total_mass_kg
+        description: "The total mass of payloads in kilograms."
+      - name: total_mass_lbs
+        description: "The total mass of payloads in pounds."
