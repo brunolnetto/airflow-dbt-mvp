@@ -134,6 +134,10 @@ services:
     depends_on:
       webserver:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
     healthcheck:
       # yamllint disable rule:line-length
       test:
@@ -169,6 +173,10 @@ services:
     depends_on:
       webserver:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.00'
     healthcheck:
       # yamllint disable rule:line-length
       test:
@@ -325,7 +333,6 @@ services:
       - .env
     ports:
       - "3000:3000"
-    container_name: metabase
     restart: unless-stopped
     depends_on:
       postgres:
