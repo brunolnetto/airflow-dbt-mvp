@@ -36,7 +36,7 @@ services:
   # 📦 MinIO service
   minio:
     image: minio/minio
-    container_name: minio
+    container_name: airflow-minio
     ports:
       - "9000:9000"
       - "9090:9090"
@@ -316,6 +316,7 @@ services:
   # Description: an open-source business intelligence tool that allows users to visualize and analyze data.
   metabase:
     image: metabase/metabase:latest
+    container_name: airflow-metabase
     hostname: metabase
 
     volumes:
