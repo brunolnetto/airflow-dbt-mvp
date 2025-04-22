@@ -45,16 +45,20 @@ docker-compose up --build
 | Airflow UI  | http://localhost:8080  | DAG orchestration & monitoring     |
 | Flower      | http://localhost:5555  | Celery task queue monitoring       |
 | Metabase    | http://localhost:3000  | Data exploration & BI dashboards   |
+| Minio       | http://localhost:9090  | S3-like file storage system        |
+| PGAdmin     | http://localhost:5050  | DBMS tool for Postgres database    |
 
 ---
 
 ## 🧱 Stack Components
 
-- **Airflow**: Workflow orchestration engine.
-- **Redis**: Message broker for Celery.
-- **PostgreSQL**: Metadata DB for Airflow and Metabase.
-- **dbt**: SQL-based data transformation (mounted into Airflow).
-- **Metabase**: BI platform for querying and dashboards.
+- **Airflow**: Workflow orchestration engine;
+- **Redis**: Message broker for Celery;
+- **PostgreSQL**: Metadata DB for Airflow and Metabase;
+- **dbt**: SQL-based data transformation (mounted into Airflow);
+- **Metabase**: BI platform for querying and dashboards;
+- **Minio**: S3-like storage service for unstructured data;
+- **PgAdmin**: Web-based DBMS tool for Postgres;
 - **Flower**: Real-time monitoring of Celery workers.
 
 ---
@@ -119,9 +123,4 @@ dbt run
 
 ---
 
-## 🧬 TODO / Improvements
-
-- [ ] Add authentication (Airflow/Metabase)
-- [ ] Add persistent volume for Redis
-- [ ] Parameterize more settings in `.env`
 
