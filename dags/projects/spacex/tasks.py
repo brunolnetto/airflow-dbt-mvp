@@ -6,7 +6,7 @@ from airflow.operators.bash import BashOperator
 from airflow.decorators import task, task_group
 
 from .config import DBT_PATH
-from .core.pipeline import SpaceXPipeline
+from .pipeline import SpaceXPipeline
 from .core.storage import MinIOStorage, MinIOConfig
 
 

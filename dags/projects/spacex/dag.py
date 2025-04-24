@@ -4,8 +4,9 @@ from os import environ
 from dotenv import load_dotenv
 
 from airflow import DAG
-from spacex.config import DEFAULT_ARGS
-from spacex.tasks import (
+
+from core.config import DEFAULT_ARGS
+from .tasks import (
     get_ingestion_pipeline_group,
     get_transform_pipeline_group,
 )

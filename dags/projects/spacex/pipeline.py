@@ -4,13 +4,12 @@ from io import BytesIO
 import pandas as pd
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from .interface import BasePipeline, AbstractStorage
-from .config import load_conn_params
-from .extract import request_data
-from .load import ensure_database_exists, upload_to_postgres
-from .transform import transform_generic_data, RawDataType
-from .storage import MinIOConfig, MinIOStorage
-
+from core.base import BasePipeline, AbstractStorage
+from core.config import load_postgres_conn_params
+from core.extract import request_data
+from core.load import ensure_database_exists, upload_to_postgres
+from core.transform import transform_generic_data, RawDataType
+from core.storage import MinIOConfig, MinIOStorage
 
 def get_storage_from_config() -> AbstractStorage:
     config = MinIOConfig()
@@ -63,7 +62,7 @@ class SpaceXPipeline(BasePipeline):
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
     def load_data_to_postgres(self, df: pd.DataFrame) -> None:
         logging.info(f"⬆️ [Load] Loading data into Postgres for entity: {self.entity}")
-        conn_params = load_conn_params()
+        conn_params = load_postgres_conn_params()
         ensure_database_exists(conn_params)
         upload_to_postgres(df, conn_params, self.entity)
 
