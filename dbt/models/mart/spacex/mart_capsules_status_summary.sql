@@ -5,4 +5,4 @@ WITH capsule_status_stats AS (
     FROM {{ ref('stg_capsules') }}
     GROUP BY status
 )
-SELECT * FROM capsule_status_stats;
+SELECT * FROM capsule_status_stats

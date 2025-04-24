@@ -8,7 +8,7 @@ WITH launch_stats AS (
         c.serial AS capsule_serial
     FROM {{ ref('stg_launches') }} l
     LEFT JOIN {{ ref('stg_rockets') }} r ON l.rocket = r.id
-    LEFT JOIN {{ ref('stg_capsules') }} c ON l.id = c.launches
+    LEFT JOIN {{ ref('stg_capsules') }} c ON c.launches::jsonb ? l.id::text
 )
 SELECT
     rocket_name,
@@ -18,7 +18,7 @@ SELECT
     ROUND(
         COUNT(*) FILTER (WHERE launch_success IN ('true', 't', '1'))::numeric / COUNT(*) * 100, 
         2
-    ) AS success_rate_pct
+    ) AS success_rate
 FROM launch_stats
 GROUP BY rocket_name, capsule_serial
-ORDER BY rocket_name, capsule_serial;
+ORDER BY rocket_name, capsule_serial

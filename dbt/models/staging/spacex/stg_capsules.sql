@@ -1,9 +1,12 @@
 WITH capsules_raw AS (
     SELECT
-        capsule_id,
-        capsule_serial,
+        id,
+        serial,
         status,
+        water_landings,
+        land_landings,
         reuse_count,
+        launches,
         last_update
     FROM {{ source('raw', 'capsules') }}
 )

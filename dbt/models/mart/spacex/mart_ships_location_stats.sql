@@ -14,4 +14,4 @@ SELECT
     status
 FROM ships_location
 WHERE status = 'active'
-ORDER BY latitude, longitude;
+ORDER BY latitude, longitude

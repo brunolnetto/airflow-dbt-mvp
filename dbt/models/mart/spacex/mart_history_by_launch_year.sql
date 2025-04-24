@@ -12,4 +12,4 @@ SELECT
     history_title,
     event_date_utc
 FROM launch_history
-ORDER BY launch_year, event_date_utc;
+ORDER BY launch_year, event_date_utc

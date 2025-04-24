@@ -1,24 +1,16 @@
 version: 2
 
 models:
-  - name: mart_capsule_status_summary
+  - name: mart_capsules_status_summary
     description: "Summary of capsule status and its reuse count."
     tags: ['mart']
     columns:
-      - name: serial
-        description: "The unique serial identifier for the capsule."
-        tests:
-          - not_null
       - name: status
         description: "The current status of the capsule."
-      - name: reuse_count
-        description: "The number of times the capsule has been reused."
-      - name: water_landings
-        description: "Number of water landings performed by the capsule."
-      - name: land_landings
-        description: "Number of land landings performed by the capsule."
+      - name: total_capsules
+        description: "The total capsules according to each status."
 
-  - name: mart_launch_success_by_rocket_and_capsule
+  - name: mart_launches_success_by_rocket_and_capsule
     description: "Launch success stats aggregated by rocket and capsule."
     tags: ['mart']
     columns:
@@ -34,12 +26,12 @@ models:
           - not_null
       - name: successful_launches
         description: "The total number of successful launches for the rocket and capsule combination."
-      - name: success_rate_pct
+      - name: success_rate
         description: "The percentage of successful launches for the rocket and capsule combination."
         tests:
           - not_null
 
-  - name: mart_rocket_reuse_by_type
+  - name: mart_rockets_reuse_by_type
     description: "Rocket reuse statistics grouped by rocket type."
     tags: ['mart']
     columns:
@@ -69,7 +61,7 @@ models:
       - name: land_landings
         description: "Number of land landings performed by the capsule."
 
-  - name: mart_launch_success_by_year
+  - name: mart_launches_success_by_year
     description: "Aggregated launch success metrics by year."
     tags: ['mart']
     columns:
@@ -85,7 +77,7 @@ models:
         description: "The number of successful launches in that year."
         tests:
           - not_null
-      - name: success_rate_pct
+      - name: success_rate
         description: "The percentage of successful launches in that year."
         tests:
           - not_null
@@ -128,7 +120,7 @@ models:
       - name: asds_landings
         description: "The number of ASDS landings performed by the core."
 
-  - name: mart_launch_success_rate_by_year
+  - name: mart_launches_success_rate_by_year
     description: "The success rate of launches aggregated by year."
     tags: ['mart']
     columns:
@@ -169,7 +161,7 @@ models:
       - name: event_date_utc
         description: "The UTC date and time of the event."
 
-  - name: mart_payload_mass_by_orbit
+  - name: mart_payloads_mass_by_orbit
     description: "Aggregated payload mass statistics by orbit."
     tags: ['mart']
     columns:

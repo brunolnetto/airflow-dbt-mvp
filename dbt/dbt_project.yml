@@ -22,12 +22,12 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
-
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models
 models:
   airflow_dbt:
     # Config indicated by + and applies to all files under models/example/
+    +concurrent_batches: true
     staging:
       +schema: staging
       +materialized: view

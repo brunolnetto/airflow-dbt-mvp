@@ -3,9 +3,9 @@ WITH cores_data AS (
     SELECT
         serial,
         status,
-        reuse_count,
-        rtls_landings,
-        asds_landings
+        reuse_count::numeric,
+        rtls_landings::numeric,
+        asds_landings::numeric
     FROM {{ ref('stg_cores') }}
 )
 SELECT
@@ -16,4 +16,4 @@ SELECT
     asds_landings
 FROM cores_data
 WHERE reuse_count > 0
-ORDER BY reuse_count DESC;
+ORDER BY reuse_count DESC

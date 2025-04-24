@@ -162,8 +162,6 @@ models:
         description: "Datetime of the launch (UTC)."
         tests:
           - not_null
-          - accepted_values:
-              values: ['timestamp']
       - name: launch_success
         description: "Boolean indicating launch success."
         tests:
