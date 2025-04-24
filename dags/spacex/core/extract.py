@@ -4,9 +4,7 @@ from time import sleep
 
 from spacex.config import logging
 
-def extract_entity(entity: str) -> List[Dict]:
-    url = f"https://api.spacexdata.com/v4/{entity}"
-    
+def request_data(url: str) -> List[Dict]:
     # Retry logic for transient failures
     retries = 3
     for attempt in range(retries):
@@ -16,10 +14,10 @@ def extract_entity(entity: str) -> List[Dict]:
             data = response.json()
             
             if not isinstance(data, list):
-                logging.error(f"❌ Unexpected data format for entity '{entity}': {data}")
+                logging.error(f"❌ Unexpected data format for url '{url}': {data}")
                 return []
 
-            logging.info(f"✅ Data fetched for entity: {entity}")
+            logging.info(f"✅ Data fetched for url: {url}")
             return data
         
         except requests.exceptions.RequestException as e:

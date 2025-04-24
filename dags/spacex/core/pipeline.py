@@ -6,8 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 
 from .interface import BasePipeline, AbstractStorage
 from .config import load_conn_params
-from .utils import check_raw_file_exists
-from .extract import extract_entity
+from .extract import request_data
 from .load import ensure_database_exists, upload_to_postgres
 from .transform import transform_generic_data, RawDataType
 from .storage import MinIOConfig, MinIOStorage
@@ -21,6 +20,7 @@ def get_storage_from_config() -> AbstractStorage:
 class SpaceXPipeline(BasePipeline):
     def __init__(self, entity: str, storage: AbstractStorage = None):
         self.entity = entity
+        self.entity_url = f"https://api.spacexdata.com/v4/{self.entity}"
         self.storage = storage or get_storage_from_config()
         self.object_key = f"processed/{self.entity}.parquet"
         self.data = None
@@ -30,7 +30,8 @@ class SpaceXPipeline(BasePipeline):
 
     def extract(self) -> list:
         logging.info(f"🚀 [Extract] Starting data extraction for entity: {self.entity}")
-        raw_data = extract_entity(self.entity)
+        
+        raw_data = request_data(self.entity_url)
 
         if not raw_data:
             logging.warning(f"⚠️ No data fetched for entity: {self.entity}")
