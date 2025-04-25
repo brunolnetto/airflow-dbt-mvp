@@ -91,7 +91,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./env:${AIRFLOW_HOME}/.env:ro
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     ports:
       - "8080:8080"
       - "8793:8793"
@@ -132,7 +132,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./env:${AIRFLOW_HOME}/.env:ro
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       webserver:
         condition: service_healthy
@@ -172,7 +172,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./env:${AIRFLOW_HOME}/.env:ro
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       webserver:
         condition: service_healthy
@@ -209,7 +209,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./env:${AIRFLOW_HOME}/.env:ro
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -243,7 +243,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./env:${AIRFLOW_HOME}/.env:ro
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       scheduler:
         condition: service_healthy
