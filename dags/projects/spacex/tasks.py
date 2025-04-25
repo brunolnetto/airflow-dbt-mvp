@@ -5,10 +5,10 @@ from re import sub
 from airflow.operators.bash import BashOperator
 from airflow.decorators import task, task_group
 
-from .config import DBT_PATH
-from .pipeline import SpaceXPipeline
-from .core.storage import MinIOStorage, MinIOConfig
+from core.config import DBT_PATH
+from core.storage import MinIOStorage, MinIOConfig
 
+from projects.spacex.pipeline import SpaceXPipeline
 
 def get_entity_pipeline_task(entity: str):
     """

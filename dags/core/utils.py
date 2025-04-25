@@ -9,7 +9,7 @@ def serialize_to_buffer(df: pd.DataFrame) -> BytesIO:
     """Serialize DataFrame to a BytesIO buffer in Parquet format."""
     if df.empty:
         logging.warning("⚠️ DataFrame is empty, nothing to serialize.")
-        return BytesIO()  # Return empty buffer if DataFrame is empty
+        return BytesIO()
     buffer = BytesIO()
     df.to_parquet(buffer, index=False)
     buffer.seek(0)

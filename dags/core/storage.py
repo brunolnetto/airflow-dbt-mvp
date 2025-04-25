@@ -16,11 +16,10 @@ from .utils import serialize_to_buffer
 @dataclass
 class MinIOConfig:
     endpoint_url: str = os.getenv("MINIO_URL", "http://minio:9000")
-    access_key: str = "AiI5AC1GVbgcUVZxRlEx"
-    secret_key: str = "g5CPxys2o3ChBW0mGkzbT4jWEx5l3osw9ptnQZI7"
+    access_key: str = os.getenv("MINIO_ACCESS_KEY")
+    secret_key: str = os.getenv("MINIO_SECRET_KEY")
     region_name: str = os.getenv("MINIO_REGION")
     bucket_name: str = os.getenv("MINIO_BUCKET")
-
 
 def get_s3_client(config: MinIOConfig):
     if not all([config.access_key, config.secret_key, config.bucket_name]):

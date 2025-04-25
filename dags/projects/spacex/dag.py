@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from airflow import DAG
 
 from core.config import DEFAULT_ARGS
-from .tasks import (
+from projects.spacex.tasks import (
     get_ingestion_pipeline_group,
     get_transform_pipeline_group,
 )
