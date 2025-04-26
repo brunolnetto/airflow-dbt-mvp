@@ -1,54 +1,24 @@
-# spacex/dag.py
-
-from os import environ
-from dotenv import load_dotenv
-
 from airflow import DAG
+from airflow.decorators import task
+from core.pipeline import ELTPipeline
+from projects.spacex.tasks import build_spacex_ingestion_pipeline
 
-from core.config import DEFAULT_ARGS
-from projects.spacex.tasks import (
-    get_ingestion_pipeline_group,
-    get_transform_pipeline_group,
+def create_spacex_dag(project_name, project_description, project_schedule):
+    """ Função para criar a DAG do SpaceX """
+    spacex_dag = ELTPipeline(
+        name=project_name,
+        description=project_description,
+        schedule=project_schedule,
+        ingestion_pipeline_func=build_spacex_ingestion_pipeline,
+    ).create_dag()
+
+    return spacex_dag
+
+# Chamando a função para criar a DAG de SpaceX
+spacex_dag = create_spacex_dag(
+    project_name="spacex",
+    project_description="🚀 SpaceX ELT pipeline: API -> Postgres -> DBT",
+    project_schedule="@hourly"
 )
 
-# Carrega variáveis de ambiente
-load_dotenv()
-target_env = environ.get("ENVIRONMENT", "dev")
-assert target_env in {"dev", "prod"}, f"Invalid target_env: {target_env}"
-
-# Define entidades da API SpaceX
-ENTITIES = sorted({
-    "history", "launches", "capsules", "cores", "dragons",
-    "payloads", "rockets", "ships", "landpads"
-})
-
-project_name="spacex"
-project_description="🚀 SpaceX ETL pipeline: API -> Postgres -> DBT"
-schedule_interval="@hourly"
-
-with DAG(
-    dag_id=f"{project_name}__elt__{target_env}",
-    default_args=DEFAULT_ARGS,
-    description=project_description,
-    schedule_interval=schedule_interval,
-    catchup=False,
-    tags=[project_name, "elt", "dbt"]
-) as dag:
-
-    # Cria o grupo de tarefas da pipeline por entidade
-    ingestion_name=f"ingestion_pipeline_{project_name}"
-    ingestion_pipeline = get_ingestion_pipeline_group(
-        pipeline_name=ingestion_name, 
-        entities=ENTITIES
-    )
-
-    # Cria tarefas DBT encadeadas
-    transform_name=f"transform_pipeline_{project_name}"
-    transformation_pipeline = get_transform_pipeline_group(
-        pipeline_name=transform_name, 
-        target_env=target_env, 
-        project_name=project_name
-    )
-
-    # Define ordem de execução
-    ingestion_pipeline >> transformation_pipeline
+print(f"DAG {spacex_dag.dag_id} created.")  # Debugging line

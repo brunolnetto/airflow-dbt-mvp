@@ -76,6 +76,14 @@ class MinIOStorage(AbstractStorage):
             logging.error(f"❌ Download failed: {e}")
             raise
 
+    # 📝 Método genérico de copia
+    def copy(self, source_key: str, destination_key: str) -> None:
+        self.client.copy_object(
+            bucket_name=self.bucket,
+            object_name=destination_key,
+            object_source=f"{self.bucket}/{source_key}"
+        )
+
     # 📜 Listar objetos com prefixo
     def list_objects(self, prefix: str = "") -> List[str]:
         try:
@@ -98,87 +106,3 @@ class MinIOStorage(AbstractStorage):
         buffer = BytesIO()
         df.to_parquet(buffer, index=False)
         self.upload(buffer.getvalue(), object_key)
-
-def ensure_bucket_exists(client, bucket_name: str) -> None:
-    try:
-        buckets = client.list_buckets().get("Buckets", [])
-        if not any(b["Name"] == bucket_name for b in buckets):
-            client.create_bucket(Bucket=bucket_name)
-            logging.info(f"🪣 Bucket '{bucket_name}' created.")
-    except Exception as e:
-        logging.exception(f"❌ Bucket verification/creation failed: {e}")
-        raise
-
-
-def upload_to_minio(buffer: BytesIO, object_key: str) -> None:
-    try:
-        ensure_bucket_exists(s3_client, minio_config.bucket_name)
-        s3_client.upload_fileobj(buffer, minio_config.bucket_name, object_key)
-        logging.info(f"📤 Uploaded to MinIO: {object_key}")
-    except Exception as e:
-        logging.exception(f"❌ Upload failed: {object_key}")
-        raise
-
-
-def download_from_minio(object_key: str) -> BytesIO:
-    buffer = BytesIO()
-    try:
-        s3_client.download_fileobj(minio_config.bucket_name, object_key, buffer)
-        buffer.seek(0)
-        logging.info(f"📥 Downloaded from MinIO: {object_key}")
-        return buffer
-    except Exception as e:
-        logging.exception(f"❌ Download failed: {object_key}")
-        raise
-
-
-def upload_json_to_minio(data: List[dict], entity: str) -> None:
-    buffer = BytesIO(json.dumps(data).encode("utf-8"))
-    upload_to_minio(buffer, f"raw/{entity}.json")
-
-
-def download_json_from_minio(entity: str) -> List[dict]:
-    buffer = download_from_minio(f"raw/{entity}.json")
-    return json.load(buffer)
-
-
-def upload_parquet_to_minio(df: pd.DataFrame, entity: str) -> None:
-    buffer = BytesIO()
-    df.to_parquet(buffer, index=False)
-    buffer.seek(0)
-    upload_to_minio(buffer, f"processed/{entity}.parquet")
-
-
-def ensure_bucket_and_upload(df: pd.DataFrame, entity: str) -> None:
-    object_key = str(PROCESSED_DIR / f"{entity}.parquet")
-    try:
-        ensure_bucket_exists(s3_client, minio_config.bucket_name)
-        buffer = serialize_to_buffer(df)
-        s3_client.upload_fileobj(buffer, minio_config.bucket_name, object_key)
-        logging.info(f"📤 Uploaded to MinIO: {object_key}")
-    except Exception as e:
-        logging.exception(f"❌ Failed to upload {object_key}")
-        raise
-
-
-def save_parquet_locally(df: pd.DataFrame, entity: str) -> None:
-    path = PROCESSED_DIR / f"{entity}.parquet"
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(path)
-    logging.info(f"📦 Parquet saved locally: {path}")
-
-
-def save_json_locally(data: List[dict], entity: str) -> Path:
-    path = RAW_DIR / f"{entity}.json"
-    RAW_DIR.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    logging.info(f"💾 JSON saved locally: {path}")
-    return path
-
-
-def backup_locally(df: pd.DataFrame, entity: str) -> None:
-    path = PROCESSED_DIR / f"{entity}.parquet"
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(path)
-    logging.info(f"🗂️ Backup saved locally: {path}")

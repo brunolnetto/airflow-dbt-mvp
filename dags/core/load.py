@@ -5,7 +5,7 @@ import pandas as pd
 import psycopg2
 import psycopg2.extras
 
-from .config import RAW_SCHEMA
+from .config import RAW_SCHEMA, logging
 from .utils import convert_dataframe_to_tuples
 
 logger = logging.getLogger(__name__)
@@ -30,11 +30,9 @@ def ensure_database_exists(db_params: dict) -> None:
         logger.exception(f"❌ Failed to ensure database exists: {e}")
         raise
 
-
 def quote_column_name(col_name: str) -> str:
     """Properly quote column names for SQL compatibility."""
     return f'"{col_name}"'
-
 
 def create_table_sql(df: pd.DataFrame, entity: str) -> str:
     """Generate SQL to create a table matching the DataFrame's schema."""
@@ -55,7 +53,6 @@ def create_table_sql(df: pd.DataFrame, entity: str) -> str:
         );
     """
 
-
 def insert_data_sql(df: pd.DataFrame, entity: str) -> str:
     """Generate SQL for inserting data into the table."""
     table_name = f"{RAW_SCHEMA}.{entity}"
@@ -66,7 +63,6 @@ def insert_data_sql(df: pd.DataFrame, entity: str) -> str:
         VALUES %s
         ON CONFLICT (id) DO NOTHING;
     """
-
 
 def upload_to_postgres(df: pd.DataFrame, conn_params: Dict[str, str], entity: str) -> None:
     """Upload a DataFrame to PostgreSQL."""

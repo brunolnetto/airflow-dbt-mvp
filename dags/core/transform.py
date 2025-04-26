@@ -2,9 +2,8 @@ from typing import List, Dict, Any
 import pandas as pd
 
 from .config import logging
+from .base import RawDataType
 from .utils import stringify_value
-
-RawDataType=List[Dict[str, Any]]
 
 def transform_generic_data(raw_data: RawDataType) -> pd.DataFrame:
     """

@@ -1,10 +1,12 @@
 import os
+from os import environ
 from pathlib import Path
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from typing import Dict
 from functools import lru_cache
 import logging
+
 
 # Function to fetch environment variables or raise an error if missing
 def get_env_or_fail(var: str, fallback=None) -> str:
@@ -18,7 +20,9 @@ PROJECT_DIR = os.getenv("AIRFLOW_HOME", "/opt/airflow")
 DBT_PATH_DEFAULT = os.path.join(PROJECT_DIR, "dbt")
 DBT_PATH = os.getenv("DBT_PATH", DBT_PATH_DEFAULT)
 
-DEFAULT_ARGS = {
+VALID_DBT_TASKS = {"run", "test", "seed", "snapshot"}
+
+DBT_DEFAULT_ARGS = {
     "owner": "airflow",
     "start_date": datetime(2025, 1, 1),
     "retries": 1,
@@ -57,3 +61,13 @@ def load_postgres_conn_params() -> Dict[str, str]:
         "dbname": DATABASE_NAME,
     }
 
+def get_target_env() -> str:
+    """Get the target environment for the pipeline."""
+
+    # Carrega variáveis de ambiente apenas em desenvolvimento
+    if environ.get("AIRFLOW_ENVIRONMENT") != "production":
+        load_dotenv()
+
+    target_env = environ.get("ENVIRONMENT", "dev")
+    if target_env not in {"dev", "prod"}:
+        raise ValueError(f"Invalid ENVIRONMENT: {target_env}")
