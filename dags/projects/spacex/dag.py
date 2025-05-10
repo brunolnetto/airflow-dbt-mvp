@@ -21,4 +21,4 @@ spacex_dag = create_spacex_dag(
     project_schedule="@hourly"
 )
 
-print(f"DAG {spacex_dag.dag_id} created.")  # Debugging line
+print(f"DAG {spacex_dag.dag_id} created.")

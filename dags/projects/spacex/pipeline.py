@@ -109,5 +109,5 @@ class SpaceXPipeline(BasePipeline):
         """
         Run the pipeline: extract, transform, and load data.
         """
-        with self.pipeline_context(self.__class__.__name__, {"entity": self.entity}):
+        with pipeline_context(self.__class__.__name__, {"entity": self.entity}):
             super().run()

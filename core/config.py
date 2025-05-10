@@ -63,11 +63,8 @@ def load_postgres_conn_params() -> Dict[str, str]:
 
 def get_target_env() -> str:
     """Get the target environment for the pipeline."""
-
-    # Carrega variáveis de ambiente apenas em desenvolvimento
-    if environ.get("AIRFLOW_ENVIRONMENT") != "production":
-        load_dotenv()
-
+    load_dotenv()
     target_env = environ.get("ENVIRONMENT", "dev")
+
     if target_env not in {"dev", "prod"}:
         raise ValueError(f"Invalid ENVIRONMENT: {target_env}")

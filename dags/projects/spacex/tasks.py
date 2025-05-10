@@ -79,7 +79,6 @@ def build_spacex_ingestion_pipeline(pipeline_name: str) -> TaskGroup:
     @task_group(group_id=pipeline_name)
     def ingestion_group():
 
-        @task
         def get_entities():
             return [
                 "capsules", "cores", "dragons", "history",
