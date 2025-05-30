@@ -31,6 +31,10 @@ models:
           - not_null
       - name: status
         description: "Current status of the capsule."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['active', 'inactive', 'unknown', 'retired', 'destroyed']
       - name: reuse_count
         description: "Number of times the capsule has been reused."
       - name: water_landings
@@ -58,6 +62,9 @@ models:
           - not_null
       - name: status
         description: "Current status of the core."
+        tests:
+          - accepted_values:
+              values: ['active', 'inactive', 'unknown', 'expended', 'lost', 'retired']
       - name: reuse_count
         description: "Number of times the core has been reused."
       - name: rtls_attempts
@@ -89,12 +96,20 @@ models:
           - not_null
       - name: type
         description: "Type of the Dragon spacecraft."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Dragon 1.0', 'Dragon 1.1', 'Crew Dragon', 'Cargo Dragon']
       - name: active
         description: "Whether the Dragon spacecraft is active."
       - name: crew_capacity
         description: "Maximum crew capacity for the Dragon spacecraft."
+        tests:
+          - not_null
       - name: dry_mass_kg
         description: "Dry mass of the Dragon spacecraft in kilograms."
+        tests:
+          - not_null
       - name: height_w_trunk
         description: "Height of the Dragon spacecraft including the trunk."
       - name: diameter
@@ -135,8 +150,13 @@ models:
           - unique
       - name: name
         description: "Name of the landpad."
+        tests:
+          - not_null
       - name: status
         description: "Status of the landpad."
+        tests:
+          - accepted_values:
+              values: ['active', 'inactive', 'under construction', 'retired']
       - name: locality
         description: "Locality where the landpad is located."
       - name: latitude
@@ -172,6 +192,9 @@ models:
         description: "Rocket ID."
         tests:
           - not_null
+          - relationships:
+              to: ref('stg_rockets')
+              field: id
       - name: details
         description: "Additional mission details."
       - name: flight_number
@@ -191,12 +214,21 @@ models:
         description: "Name of the payload."
       - name: type
         description: "Type of payload."
+        tests:
+          - not_null
       - name: mass_kg
         description: "Mass of the payload in kilograms."
+        tests:
+          - not_null
       - name: mass_lbs
         description: "Mass of the payload in pounds."
+        tests:
+          - not_null
       - name: orbit
         description: "Orbit of the payload."
+        tests:
+          - accepted_values:
+              values: ['LEO', 'GEO', 'GTO', 'SSO', 'HEO', 'ISS']
       - name: customers
         description: "Customers associated with the payload."
 
@@ -214,14 +246,22 @@ models:
         description: "Name of the rocket."
       - name: height
         description: "Height of the rocket."
+        tests:
+          - not_null
       - name: diameter
         description: "Diameter of the rocket."
+        tests:
+          - not_null
       - name: mass
         description: "Mass of the rocket."
+        tests:
+          - not_null
       - name: first_flight
         description: "Date of the first flight for the rocket."
       - name: boosters
         description: "Number of boosters used by the rocket."
+        tests:
+          - not_null
 
   # Staging Model for ships
   - name: stg_ships
@@ -237,10 +277,17 @@ models:
         description: "Name of the ship."
       - name: type
         description: "Type of ship."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Cargo', 'Support', 'Barge', 'Tug', 'ASDS']
       - name: speed_kn
         description: "Speed of the ship in knots."
       - name: status
         description: "Current status of the ship."
+        tests:
+          - accepted_values:
+              values: ['active', 'inactive', 'under construction', 'retired']
       - name: latitude
         description: "Latitude of the ship."
       - name: longitude

@@ -30,6 +30,9 @@ models:
         description: "The percentage of successful launches for the rocket and capsule combination."
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1
 
   - name: mart_rockets_reuse_by_type
     description: "Rocket reuse statistics grouped by rocket type."
@@ -81,6 +84,9 @@ models:
         description: "The percentage of successful launches in that year."
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 1
 
   - name: mart_rockets_launch_stats
     description: "Statistics on rocket launches, including total and successful launches."
@@ -102,6 +108,9 @@ models:
         description: "The percentage of successful launches for the rocket."
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
 
   - name: mart_cores_reuse_stats
     description: "Statistics on core reuse, including RTLS and ASDS landings."
@@ -132,6 +141,9 @@ models:
         description: "The percentage of successful launches in that year."
         tests:
           - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              max_value: 100
 
   - name: mart_ships_location_stats
     description: "Summary of ships' location statistics, filtered by active status."
@@ -175,5 +187,15 @@ models:
           - not_null
       - name: total_mass_kg
         description: "The total mass of payloads in kilograms."
+        tests:
+          - not_null # Assuming not_null is still desired
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              # No max_value needed for non-negative
       - name: total_mass_lbs
         description: "The total mass of payloads in pounds."
+        tests:
+          - not_null # Assuming not_null is still desired
+          - dbt_expectations.expect_column_values_to_be_between:
+              min_value: 0
+              # No max_value needed for non-negative

@@ -19,6 +19,8 @@ def get_env_or_fail(var: str, fallback=None) -> str:
 DATABASE_NAME = get_env_or_fail("POSTGRES_DB", "spacex_db")
 RAW_SCHEMA = "raw"
 
+BASE_API_URL = "https://api.spacexdata.com/v4"
+
 BASE_DIR = Path(__file__).resolve().parent
 RAW_DIR = BASE_DIR / "data" / "raw"
 PROCESSED_DIR = BASE_DIR / "data" / "processed"

@@ -115,6 +115,25 @@ create_airflow_admin_user() {
   fi
 }
 
+install_dbt_dependencies() {
+  log_info "Installing dbt dependencies..."
+  if [ ! -f "${AIRFLOW_HOME}/dbt/packages.yml" ]; then
+    log_warn "DBT packages.yml not found at ${AIRFLOW_HOME}/dbt/packages.yml. Skipping dbt deps."
+    return 0 # Not a fatal error if packages.yml doesn't exist
+  fi
+
+  log_info "Found packages.yml, running dbt deps in ${AIRFLOW_HOME}/dbt..."
+  if ! (cd "${AIRFLOW_HOME}/dbt" && dbt deps); then
+    log_error "Failed to install dbt dependencies. Check dbt logs for details."
+    # Decide if this should be a fatal error. For now, let's make it non-fatal
+    # as the core pipeline might function without some optional tests.
+    # To make it fatal, use 'return 1' or 'exit 1'.
+    return 0 # For now, non-fatal
+  fi
+  log_info "dbt dependencies installation command completed."
+  return 0
+}
+
 main() {
   log_info "Running as user: $(whoami)"
 
@@ -131,6 +150,7 @@ main() {
     wait_for_postgres
     create_postgres_databases
     generate_dbt_profile
+    install_dbt_dependencies
     initialize_airflow_db
     create_airflow_admin_user
   )
