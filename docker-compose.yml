@@ -69,13 +69,16 @@ services:
     env_file:
       - .env
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./dags:${AIRFLOW_HOME}/dags
       - ./dbt:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./entrypoint.sh:/entrypoint.sh
-    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+      - ./scripts:/scripts
+    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   # 🌐 Airflow webserver service
