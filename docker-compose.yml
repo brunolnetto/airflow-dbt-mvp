@@ -37,6 +37,7 @@ services:
   minio:
     image: minio/minio
     container_name: airflow-minio
+    restart: unless-stopped
     ports:
       - "9000:9000"
       - "9090:9090"
