@@ -33,6 +33,9 @@ RUN uv pip install --system -r requirements.txt && uv pip install --upgrade prot
 
 # Change ownership of the whole working directory to airflow user
 USER airflow
+
+ENV PYTHONPATH="/opt/airflow:${PYTHONPATH}"
+
 COPY --chown=airflow:airflow . .
 
 # Ensure proper ownership and permissions for dbt files
