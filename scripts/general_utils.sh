@@ -25,14 +25,8 @@ update_env_file() {
   local value="$2"
   local env_file=".env"
 
-  echo "Updating: $key=$value" >&2
-
   # Ensure .env exists
   touch "$env_file"
-
-  # Debug: show current contents
-  echo "--- Before:" >&2
-  cat "$env_file" >&2
 
   # Update or append
   if grep -q "^${key}=" "$env_file"; then
@@ -40,9 +34,6 @@ update_env_file() {
   else
     echo "${key}=${value}" >> "$env_file"
   fi
-
-  echo "--- After:" >&2
-  cat "$env_file" >&2
 }
 
 generate_random_string() {
