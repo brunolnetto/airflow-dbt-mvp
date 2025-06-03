@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h 127.0.0.1"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -27,7 +27,7 @@ services:
     volumes:
       - redis_data:/redis
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -104,7 +104,7 @@ services:
         condition: service_healthy
       init:
         condition: service_completed_successfully
-    command: webserver --debug
+    command: ["bash", "-c", "exec airflow webserver --access-logfile - --error-logfile -"]
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s
