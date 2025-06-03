@@ -8,6 +8,7 @@ dependencies = [
     "apache-airflow-providers-dbt-core",
     "apache-airflow==2.10.5",
     "apache-airflow-providers-openlineage==2.1.1",
+    "astronomer-cosmos==1.10.1",
     "dbt-core==1.9.4",
     "dbt-postgres==1.9.0",
     "pandas==2.2.3",
