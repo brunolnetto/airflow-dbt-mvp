@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Utilities for MinIO bucket setup and user management
-
+# Improved MinIO bucket setup and user management script
 set -euo pipefail
 
 source /scripts/general_utils.sh
@@ -11,32 +10,27 @@ S3_ENDPOINT="http://minio:9000"
 MC_ALIAS="admin"
 MC_ALIAS_TMP="myminio"
 
-# Get MinIO container
+# --- Utility Functions ---
 get_minio_container() {
   docker ps --filter "name=minio" -q | head -n1
 }
 
-# Execute mc in container
 mc_exec() {
-  local container="$1"
-  shift
+  local container="$1"; shift
   docker exec -i "$container" mc "$@"
 }
 
-# Generate keys
-generate_access_keys() {  
+generate_access_keys() {
   ACCESS_KEY=$(generate_random_string 12 'A-Z0-9' 16)
-  SECRET_KEY=$(generate_random_string 32 'A-Za-z0-9' 32)
-  export ACCESS_KEY SECRET_KEY
+  SECRET_KEY=$(generate_random_string 24 'A-Za-z0-9' 32)
 
+  export ACCESS_KEY SECRET_KEY
   update_env_file "MINIO_ACCESS_KEY" "$ACCESS_KEY"
   update_env_file "MINIO_SECRET_KEY" "$SECRET_KEY"
 }
 
-# Create public read/write policy
 write_policy_file() {
-  local container="$1"
-  local bucket="$2"
+  local container="$1" bucket="$2"
   local policy_file="/tmp/public-read-$bucket.json"
 
   docker exec -i "$container" bash -c "cat > $policy_file <<EOF
@@ -46,87 +40,73 @@ write_policy_file() {
     {
       \"Effect\": \"Allow\",
       \"Principal\": \"*\",
-      \"Action\": [
-        \"s3:GetBucketLocation\",
-        \"s3:ListBucket\"
-      ],
-      \"Resource\": [
-        \"arn:aws:s3:::$bucket\"
-      ]
+      \"Action\": [\"s3:GetBucketLocation\", \"s3:ListBucket\"],
+      \"Resource\": [\"arn:aws:s3:::$bucket\"]
     },
     {
       \"Effect\": \"Allow\",
       \"Principal\": \"*\",
-      \"Action\": [
-        \"s3:GetObject\",
-        \"s3:PutObject\",
-        \"s3:DeleteObject\"
-      ],
-      \"Resource\": [
-        \"arn:aws:s3:::$bucket/*\"
-      ]
+      \"Action\": [\"s3:GetObject\", \"s3:PutObject\", \"s3:DeleteObject\"],
+      \"Resource\": [\"arn:aws:s3:::$bucket/*\"]
     }
   ]
 }
 EOF"
 }
 
-# Ensure mc alias
 ensure_mc_alias() {
   local container="$1" user="$2" pass="$3"
   mc_exec "$container" alias set "$MC_ALIAS" "$S3_ENDPOINT" "$user" "$pass"
 }
 
-# Ensure bucket exists
 ensure_bucket_exists() {
   local container="$1" bucket="$2"
-
   if mc_exec "$container" ls "$MC_ALIAS/$bucket" >/dev/null 2>&1; then
     log_warn "Bucket '$bucket' already exists."
   else
-    if mc_exec "$container" mb "$MC_ALIAS/$bucket"; then
-      log_success "Bucket '$bucket' created."
-    else
-      log_warn "Failed to create bucket '$bucket', continuing..."
-    fi
+    mc_exec "$container" mb "$MC_ALIAS/$bucket" && log_success "Bucket '$bucket' created."
   fi
 }
 
-# Apply bucket policy
 apply_bucket_policy() {
   local container="$1" bucket="$2"
   local policy_file="/tmp/public-read-$bucket.json"
   local policy_name="publicread-$bucket"
 
   mc_exec "$container" admin policy create "$MC_ALIAS" "$policy_name" "$policy_file"
-  mc_exec "$container" admin policy attach "$MC_ALIAS" "$policy_name" --user "$ACCESS_KEY"
+  if [ -n "${ACCESS_KEY:-}" ]; then
+    mc_exec "$container" admin policy attach "$MC_ALIAS" "$policy_name" --user "$ACCESS_KEY"
+  else
+    log_warn "ACCESS_KEY is not set, skipping user policy attachment."
+  fi
   mc_exec "$container" anonymous set-json "$policy_file" "$MC_ALIAS/$bucket"
 }
 
-# Create user
 create_user_credentials() {
   local container="$1"
+  if [[ ${#ACCESS_KEY} -lt 3 || ${#ACCESS_KEY} -gt 20 ]]; then
+    log_error "Access key length must be between 3 and 20 characters."
+    return 1
+  fi
   mc_exec "$container" admin user add "$MC_ALIAS" "$ACCESS_KEY" "$SECRET_KEY"
 }
 
-# Set temporary user alias
 setup_temporary_alias() {
-  local container="$1"
-  local bucket="$2"
-
+  local container="$1" bucket="$2"
   mc_exec "$container" alias set "$MC_ALIAS_TMP" "$S3_ENDPOINT" "$ACCESS_KEY" "$SECRET_KEY"
   mc_exec "$container" ls "$MC_ALIAS_TMP/$bucket" || log_warn "Failed to list bucket with new credentials."
 }
 
-# Entrypoint function
+# --- Entrypoint ---
 setup_minio() {
   local bucket="${MINIO_BUCKET:?MINIO_BUCKET not set}"
   local admin_user="${MINIO_ROOT_USER:?MINIO_ROOT_USER not set}"
   local admin_pass="${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD not set}"
 
+  log_info "\u25B6\uFE0F Running step: setup_minio"
+
   local container
   container=$(get_minio_container)
-
   if [ -z "$container" ]; then
     log_error "MinIO container not found!"
     exit 1

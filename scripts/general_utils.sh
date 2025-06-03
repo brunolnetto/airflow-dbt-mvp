@@ -27,7 +27,7 @@ update_env_file() {
 
   # Ensure .env exists
   touch "$env_file"
-
+  
   # Update or append
   if grep -q "^${key}=" "$env_file"; then
     sed -i.bak "s|^${key}=.*|${key}=${value}|" "$env_file" && rm -f "${env_file}.bak"
