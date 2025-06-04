@@ -12,6 +12,11 @@ ensure_var_set "MINIO_ROOT_USER"
 ensure_var_set "MINIO_ROOT_PASSWORD"
 ensure_var_set "MINIO_BUCKET"
 
+setup_minio_wrapper() {
+  setup_minio "$MINIO_BUCKET" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+}
+
+
 main() {
   log_info "Running as user: $(whoami)"
 
@@ -29,7 +34,7 @@ main() {
     create_postgres_databases
     generate_dbt_profile
     install_dbt_dependencies
-    setup_minio
+    setup_minio_wrapper
     initialize_airflow_db
     create_airflow_admin_user
   )
