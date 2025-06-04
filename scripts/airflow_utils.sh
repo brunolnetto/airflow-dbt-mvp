@@ -2,6 +2,12 @@
 
 source /scripts/general_utils.sh
 
+airflow_db_clean(){
+  log_info "Cleaning up Airflow database..." 
+  
+  airflow db clean
+}
+
 initialize_airflow_db() {
   log_info "Initializing Airflow metadata database..."
 

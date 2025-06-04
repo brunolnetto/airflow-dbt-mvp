@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 RETRY_ATTEMPTS = 3
 RETRY_WAIT_SECONDS = 5
+BASE_URL = "api.spacexdata.com/v4"
 
 @contextmanager
 def pipeline_context(self, name, extras):
@@ -28,9 +29,9 @@ def pipeline_context(self, name, extras):
 class SpaceXPipeline(BasePipeline):
     def __init__(self, entity: str, storage: StorageType) -> None:
         self.entity = entity
-        self.entity_url = f"https://api.spacexdata.com/v4/{self.entity}"
+        self.entity_url = f"https://${BASE_URL}/{self.entity}"
         self.storage = storage
-        self.object_key = f"spacex/{self.entity}.parquet"
+        self.object_key = f"{self.entity}.parquet"
         self.data: Optional[pd.DataFrame] = None
 
     def __str__(self):

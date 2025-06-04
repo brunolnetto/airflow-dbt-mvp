@@ -1,5 +1,3 @@
-from airflow import DAG
-from airflow.decorators import task
 from core.pipeline import ELTPipeline
 from projects.spacex.tasks import build_spacex_ingestion_pipeline
 

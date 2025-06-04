@@ -104,7 +104,7 @@ services:
         condition: service_healthy
       init:
         condition: service_completed_successfully
-    command: ["bash", "-c", "exec airflow webserver --access-logfile - --error-logfile -"]
+    command: ["bash", "-c", "exec airflow webserver"]
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 30s

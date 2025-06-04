@@ -1,14 +1,8 @@
 # tasks.py
-import logging
-from re import sub
-from typing import Type, Sequence
-
-from airflow.operators.bash import BashOperator
 from airflow.decorators import task, task_group
 from airflow.utils.task_group import TaskGroup
 import pandas as pd
 
-from core.base import PipelineType
 from core.storage import MinIOStorage, MinIOConfig
 from core.base import AbstractStorage
 
@@ -21,9 +15,9 @@ def get_entity_pipeline_task(entity: str):
     """
     @task(task_id=f"run_pipeline_{entity}")
     def run_entity_pipeline_task() -> None:
-        storage_config=MinIOConfig()
+        storage_config=MinIOConfig(bucket_name="spacex")
         storage_obj=MinIOStorage(config=storage_config)
-        pipeline = SpaceXPipeline(entity, )
+        pipeline = SpaceXPipeline(entity, storage_obj)
         pipeline.run()
 
     return run_entity_pipeline_task

@@ -19,7 +19,7 @@ class MinIOConfig:
     access_key: str = os.getenv("MINIO_ACCESS_KEY")
     secret_key: str = os.getenv("MINIO_SECRET_KEY")
     region_name: str = os.getenv("MINIO_REGION")
-    bucket_name: str = os.getenv("MINIO_BUCKET")
+    bucket_name: str
 
 def get_s3_client(config: MinIOConfig):
     if not all([config.access_key, config.secret_key, config.bucket_name]):
