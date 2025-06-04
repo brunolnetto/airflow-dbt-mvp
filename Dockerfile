@@ -6,7 +6,7 @@ USER root
 
 # Install system dependencies and cleanup
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gettext curl sudo git bash jq && \
+    apt-get install -y --no-install-recommends gettext curl sudo git bash jq docker-compose-plugin && \
     rm -rf /var/lib/apt/lists/*/
 
 # Add airflow user to sudoers with no password prompt (if it doesn't exist)

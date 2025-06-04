@@ -36,6 +36,11 @@ create_airflow_admin_user() {
   fi
 }
 
+# List of Airflow services
+get_airflow_services() {
+  echo "airflow-webserver airflow-worker-1 airflow-worker-2 airflow-scheduler airflow-triggerer"
+}
+
 setup_airflow(){
   initialize_airflow_db
   create_airflow_admin_user

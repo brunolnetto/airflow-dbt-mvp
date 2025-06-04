@@ -5,6 +5,8 @@
 set -euo pipefail
 
 source /scripts/general_utils.sh
+source /scripts/airflow_utils.sh
+source /scripts/docker_utils.sh
 
 : "${S3_ENDPOINT:=http://minio:9000}"
 : "${MC_ALIAS:=admin}"
@@ -57,6 +59,10 @@ generate_access_keys() {
   local access_key secret_key
   access_key=$(generate_random_string 16 'A-Z0-9' 16)
   secret_key=$(generate_random_string 32 'A-Za-z0-9' 32)
+
+  log_info "$access_key"
+  log_info "$secret_key"
+
   echo "$access_key" "$secret_key"
 }
 
@@ -201,6 +207,24 @@ setup_temporary_alias() {
   fi
 }
 
+refresh_minio_variables_on_airflow() {
+  local _access_key _secret_key
+  read -r _access_key _secret_key < <(generate_access_keys)
+  update_env_file "MINIO_ACCESS_KEY" "$_access_key"
+  update_env_file "MINIO_SECRET_KEY" "$_secret_key"s
+
+  local services=()
+  if [ ${#services[@]} -eq 0 ]; then
+    mapfile -t services < <(get_airflow_services)
+  fi
+
+  refresh_services_env_vars "MINIO_" "${services[@]}"s
+
+  # Return values for caller
+  echo "$_access_key $_secret_key"
+}
+
+
 setup_minio() {
   local bucket="$1" admin_user="$2" admin_pass="$3"
 
@@ -213,12 +237,10 @@ setup_minio() {
   container=$(get_minio_container) || return 1
   log_info "Using MinIO container: $container"
 
-  read -r access_key secret_key < <(generate_access_keys)
-  update_env_file "MINIO_ACCESS_KEY" "$access_key"
-  update_env_file "MINIO_SECRET_KEY" "$secret_key"
+  read -r access_key secret_key < <(refresh_minio_variables_on_airflow)
 
-  echo -e "${YELLOW}Access Key:${RESET} $access_key"
-  echo -e "${YELLOW}Secret Key:${RESET} $secret_key"
+  log_info "${YELLOW}Access Key:${RESET} $access_key"
+  log_info "${YELLOW}Secret Key:${RESET} $secret_key"
 
   ensure_mc_alias "$container" "$admin_user" "$admin_pass"
   ensure_bucket_exists "$container" "$bucket"
@@ -237,12 +259,12 @@ setup_minio() {
   apply_bucket_policy "$container" "$bucket" "$access_key" "$secret_key" "$policy_name" "$policy_filename"
   setup_temporary_alias "$container" "$bucket" "$access_key" "$secret_key"
 
-  echo ""
+  echo "" >&2
   log_info "[BUCKET $bucket]"
-  echo -e "${YELLOW}S3 Endpoint:${RESET} $S3_ENDPOINT"
-  echo -e "${YELLOW}Bucket Name:${RESET} $bucket"
-  echo -e "${YELLOW}Access Key:${RESET} $access_key"
-  echo -e "${YELLOW}Secret Key:${RESET} $secret_key"
+  log_info "${YELLOW}S3 Endpoint:${RESET} $S3_ENDPOINT"
+  log_info "${YELLOW}Bucket Name:${RESET} $bucket"
+  log_info "${YELLOW}Access Key:${RESET} $access_key"
+  log_info "${YELLOW}Secret Key:${RESET} $secret_key"
 }
 
 # Export functions if needed

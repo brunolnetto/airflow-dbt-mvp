@@ -4,6 +4,8 @@ services:
   postgres:
     image: postgres:13
     container_name: airflow-postgres
+    networks:
+      - mynetwork
     restart: unless-stopped
     env_file:
       - .env
@@ -26,6 +28,8 @@ services:
     restart: unless-stopped
     volumes:
       - redis_data:/redis
+    networks:
+      - mynetwork
     healthcheck:
       test: ["CMD", "sh", "-c", "redis-cli ping | grep PONG"]
       interval: 10s
@@ -38,6 +42,8 @@ services:
     image: minio/minio
     container_name: airflow-minio
     restart: unless-stopped
+    networks:
+      - mynetwork
     ports:
       - "9000:9000"
       - "9090:9090"
@@ -47,8 +53,6 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9090"
-    volumes:
-      - minio_data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -67,6 +71,8 @@ services:
     build: .
     image: airflow-dbt:v1.0-dev
     container_name: airflow-init
+    networks:
+      - mynetwork
     env_file:
       - .env
     volumes:
@@ -123,6 +129,8 @@ services:
   worker-1:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-worker-1
+    networks:
+      - mynetwork
     command: celery worker
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
@@ -163,6 +171,8 @@ services:
   worker-2:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-worker-2
+    networks:
+      - mynetwork
     command: celery worker
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
@@ -204,6 +214,8 @@ services:
   scheduler:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-scheduler
+    networks:
+      - mynetwork
     restart: unless-stopped
     command: scheduler
     user: "${AIRFLOW_UID:-50000}:0"
@@ -238,6 +250,8 @@ services:
   triggerer:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-triggerer
+    networks:
+      - mynetwork
     command: triggerer
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
@@ -269,6 +283,8 @@ services:
   flower:
     image: mher/flower:latest
     container_name: airflow-flower
+    networks:
+      - mynetwork
     command: celery flower
     restart: unless-stopped
     env_file:
@@ -307,6 +323,8 @@ services:
       - .env
     restart: on-failure
     container_name: airflow-pgadmin
+    networks:
+      - mynetwork
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
@@ -335,9 +353,10 @@ services:
     image: metabase/metabase:latest
     container_name: airflow-metabase
     hostname: metabase
-
     volumes:
       - metabase_data:/metabase3-data
+    networks:
+      - mynetwork
     env_file:
       - .env
     ports:
@@ -375,3 +394,6 @@ volumes:
   metabase_data:
   pgadmin-data:
   minio_data:
+
+networks:
+  mynetwork:

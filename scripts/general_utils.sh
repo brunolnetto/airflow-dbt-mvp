@@ -8,9 +8,9 @@ BLUE="\033[34m"
 RESET="\033[0m"
 
 # Logging functions
-log_info()    { echo -e "${BLUE}🔵 [INFO]${RESET} $*"; }
-log_success() { echo -e "${GREEN}🟢 [OK]${RESET} $*"; }
-log_warn()    { echo -e "${YELLOW}🟡 [WARN]${RESET} $*"; }
+log_info()    { echo -e "${BLUE}🔵 [INFO]${RESET} $*" >&2; }
+log_success() { echo -e "${GREEN}🟢 [OK]${RESET} $*" >&2; }
+log_warn()    { echo -e "${YELLOW}🟡 [WARN]${RESET} $*" >&2; }
 log_error()   { echo -e "${RED}🔴 [ERROR]${RESET} $*" >&2; }
 
 # Trap to catch unexpected errors
@@ -51,6 +51,7 @@ generate_random_string() {
   # Generate a base64 string, filter by charset, and truncate to desired length
   openssl rand -base64 "$base64_bytes" | tr -dc "$charset" | head -c"$length"
 }
+
 
 # Export functions for external use
 export -f log_info
