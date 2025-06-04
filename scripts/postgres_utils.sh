@@ -35,3 +35,8 @@ create_postgres_databases() {
     fi
   done
 }
+
+setup_postgres(){
+  wait_for_postgres
+  create_postgres_databases
+}

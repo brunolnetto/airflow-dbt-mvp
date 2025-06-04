@@ -52,3 +52,8 @@ install_dbt_dependencies() {
   log_info "dbt dependencies installation command completed."
   return 0
 }
+
+setup_dbt(){
+  generate_dbt_profile
+  install_dbt_dependencies
+}

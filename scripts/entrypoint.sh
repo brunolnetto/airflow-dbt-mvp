@@ -16,7 +16,6 @@ setup_minio_wrapper() {
   setup_minio "$MINIO_BUCKET" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
 }
 
-
 main() {
   log_info "Running as user: $(whoami)"
 
@@ -30,13 +29,10 @@ main() {
 
   # Execute each step with individual error handling
   steps=(
-    wait_for_postgres
-    create_postgres_databases
-    generate_dbt_profile
-    install_dbt_dependencies
+    setup_postgres
+    setup_dbt
     setup_minio_wrapper
-    initialize_airflow_db
-    create_airflow_admin_user
+    setup_airflow
   )
 
   for step in "${steps[@]}"; do

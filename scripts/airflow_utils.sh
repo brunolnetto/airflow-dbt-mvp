@@ -29,3 +29,8 @@ create_airflow_admin_user() {
       log_info "Admin user created."
   fi
 }
+
+setup_airflow(){
+  initialize_airflow_db
+  create_airflow_admin_user
+}
