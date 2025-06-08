@@ -30,13 +30,16 @@ update_env_file() {
   local key="$1"
   local value="$2"
   local env_file=".env"
+  local tmp_file="$(mktemp)"
 
-  # Ensure .env exists
   touch "$env_file"
 
-  # Use sed to replace the value if the key exists; otherwise, append the key-value pair
   if grep -q "^${key}=" "$env_file"; then
-    sed -i.bak "s|^${key}=.*|${key}=${value}|" "$env_file" && rm -f "${env_file}.bak"
+    awk -v k="$key" -v v="$value" -F= '
+      $1 == k { print k "=" v; next }
+      { print }
+    ' "$env_file" > "$tmp_file"
+    cp "$tmp_file" "$env_file" && sync && rm -f "$tmp_file"
   else
     echo "${key}=${value}" >> "$env_file"
   fi

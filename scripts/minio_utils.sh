@@ -211,17 +211,13 @@ refresh_minio_variables_on_airflow() {
   local _access_key _secret_key
   read -r _access_key _secret_key < <(generate_access_keys)
   update_env_file "MINIO_ACCESS_KEY" "$_access_key"
-  update_env_file "MINIO_SECRET_KEY" "$_secret_key"s
+  update_env_file "MINIO_SECRET_KEY" "$_secret_key"
 
-  local services=()
-  if [ ${#services[@]} -eq 0 ]; then
-    mapfile -t services < <(get_airflow_services)
-  fi
-
-  refresh_services_env_vars "MINIO_" "${services[@]}"s
+  log_info "Updated MINIO_ACCESS_KEY and MINIO_SECRET_KEY in environment variables."
 
   # Return values for caller
-  echo "$_access_key $_secret_key"
+  echo "$_access_key"
+  echo "$_secret_key"
 }
 
 
@@ -237,10 +233,17 @@ setup_minio() {
   container=$(get_minio_container) || return 1
   log_info "Using MinIO container: $container"
 
-  read -r access_key secret_key < <(refresh_minio_variables_on_airflow)
+  mapfile -t keys < <(refresh_minio_variables_on_airflow)
+  if [[ ${#keys[@]} -lt 2 ]]; then
+    echo "❌ Failed to retrieve access keys from refresh_minio_variables_on_airflow" >&2
+    exit 1
+  fi
 
-  log_info "${YELLOW}Access Key:${RESET} $access_key"
-  log_info "${YELLOW}Secret Key:${RESET} $secret_key"
+  access_key="${keys[0]}"
+  secret_key="${keys[1]}"
+
+  log_info "Generated Access Key: $access_key"
+  log_info "Generated Secret Key: $secret_key"
 
   ensure_mc_alias "$container" "$admin_user" "$admin_pass"
   ensure_bucket_exists "$container" "$bucket"
