@@ -21,9 +21,11 @@ services:
   # 🧠 Redis service 
   # Description: a fast in-memory data structure store, used as a database, cache, and message broker.
   redis:
-    image: redis:alpine
+    image: redis:7.2-bookworm
     container_name: airflow-redis
     restart: unless-stopped
+    expose:
+      - 6379
     volumes:
       - redis_data:/redis
     healthcheck:
@@ -101,7 +103,7 @@ services:
         condition: service_completed_successfully
     command: webserver --debug
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -224,6 +226,27 @@ services:
       options:
         max-file: "2"
         max-size: "5m"
+  
+  dag-processor:
+    image: airflow-dbt:v1.0-dev
+    user: "${AIRFLOW_UID:-50000}:0"
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: dag-processor    
+    healthcheck:
+      test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
   
   # 🔔 Airflow triggerer service
   # Description: responsible for handling deferred tasks in Airflow.
