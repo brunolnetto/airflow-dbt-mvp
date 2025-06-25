@@ -1,4 +1,4 @@
-FROM apache/airflow:3.0.2
+FROM apache/airflow:3.0.2-python3.10
 
 WORKDIR /opt/airflow
 
@@ -6,8 +6,16 @@ USER root
 
 # Install system dependencies and cleanup
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gettext curl sudo git bash jq docker-compose-plugin && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        cmake \
+        git \
+        gettext curl sudo bash jq docker-compose-plugin && \
     rm -rf /var/lib/apt/lists/*/
+
+# Install MinIO client (mc)
+RUN curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc \
+    && chmod +x /usr/local/bin/mc
 
 # Add airflow user to sudoers with no password prompt (if it doesn't exist)
 RUN echo "airflow ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/airflow
@@ -17,9 +25,6 @@ RUN groupadd -f -g 50000 airflow && usermod -aG airflow airflow
 
 # Download and install uv from external source
 COPY --from=ghcr.io/astral-sh/uv:0.6.13 /uv /uvx /bin/
-
-# Change ownership of /opt/airflow to airflow user
-RUN chown -R airflow:airflow /opt/airflow
 
 # Create group with the same GID as docker socket group
 RUN groupadd -for -g 110 docker

@@ -70,9 +70,11 @@ services:
   # ⚙️ Airflow Initialization service
   # Description: initializes the Airflow database and sets up the environment.
   init:
-    build: .
-    image: airflow-dbt:v1.0-dev
     container_name: airflow-init
+    image: airflow-dbt:v1.0-dev
+    build: .
+    # Run as the same user as host for volume permissions
+    user: "${AIRFLOW_UID:-50000}:0"
     networks:
       - mynetwork
     env_file:
@@ -80,7 +82,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./dags:${AIRFLOW_HOME}/dags
-      - ./dbt:${AIRFLOW_HOME}/logs
+      - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
       - ./scripts:/scripts
     entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
@@ -89,6 +91,35 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+  
+  airflow-cli:
+    container_name: airflow-init
+    image: airflow-dbt:v1.0-dev
+    build: .
+    # Run as the same user as host for volume permissions
+    user: "${AIRFLOW_UID:-50000}:0"
+    networks:
+      - mynetwork
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dags:${AIRFLOW_HOME}/dags
+      - ./logs:${AIRFLOW_HOME}/logs
+      - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./scripts:/scripts
+    profiles:
+      - debug
+    environment:
+      CONNECTION_CHECK_MAX_COUNT: "0"
+    # Workaround for entrypoint issue. See: https://github.com/apache/airflow/issues/16252
+    command:
+      - bash
+      - -c
+      - airflow
+    depends_on:
+      init:
+        condition: service_completed_successfully
 
   # 🌐 Airflow webserver service
   # Description: the web interface for Airflow, allowing users to monitor and manage workflows.
@@ -96,6 +127,7 @@ services:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-webserver
     restart: unless-stopped
+    # Run as the same user as host for volume permissions
     user: "${AIRFLOW_UID:-50000}:0"
     env_file:
       - .env
@@ -108,11 +140,9 @@ services:
       - "8080:8080"
       - "8793:8793"
     depends_on:
-      redis:
-        condition: service_healthy
       init:
         condition: service_completed_successfully
-    command: ["bash", "-c", "exec airflow webserver"]
+    command: ["bash", "-c", "exec airflow api-server"]
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
       interval: 30s
@@ -134,6 +164,7 @@ services:
     networks:
       - mynetwork
     command: celery worker
+    # Run as the same user as host for volume permissions
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
     env_file:
@@ -176,6 +207,7 @@ services:
     networks:
       - mynetwork
     command: celery worker
+    # Run as the same user as host for volume permissions
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
     env_file:
@@ -210,24 +242,29 @@ services:
       options:
         max-file: "2"
         max-size: "5m"
-
-  # ⏰ Airflow scheduler service
-  # Description: responsible for scheduling tasks and managing the execution of DAGs.
+    
   scheduler:
-    image: airflow-dbt:v1.0-dev
     container_name: airflow-scheduler
+    image: airflow-dbt:v1.0-dev
     networks:
       - mynetwork
-    restart: unless-stopped
-    command: scheduler
-    user: "${AIRFLOW_UID:-50000}:0"
     env_file:
       - .env
+    command: scheduler
+    # Run as the same user as host for volume permissions
+    user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
       - ./.env:${AIRFLOW_HOME}/.env:ro
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
     depends_on:
       redis:
         condition: service_healthy
@@ -235,25 +272,19 @@ services:
         condition: service_healthy
       init:
         condition: service_completed_successfully
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8974/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-    logging:
-      driver: "json-file"
-      options:
-        max-file: "2"
-        max-size: "5m"
-  
+
+  # 🗂️ Airflow DAG Processor service
+  # Description: Responsible for processing DAG files and parsing them into the Airflow metadata database.
+  # This service ensures that DAG definitions are up-to-date and available for scheduling and execution.
   dag-processor:
+    container_name: airflow-dag-processor
     image: airflow-dbt:v1.0-dev
-    user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
     env_file:
       - .env
     command: dag-processor    
+    # Run as the same user as host for volume permissions
+    user: "${AIRFLOW_UID:-50000}:0"
     healthcheck:
       test: ["CMD-SHELL", 'airflow jobs check --job-type DagProcessorJob --hostname "$${HOSTNAME}"']
       interval: 30s
@@ -276,10 +307,11 @@ services:
     networks:
       - mynetwork
     command: triggerer
-    user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
     env_file:
       - .env
+    # Run as the same user as host for volume permissions
+    user: "${AIRFLOW_UID:-50000}:0"
     volumes:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs

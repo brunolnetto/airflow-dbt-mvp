@@ -1,10 +1,12 @@
 #!/bin/bash
+set -euo pipefail
 
-source /scripts/general_utils.sh
-source /scripts/minio_utils.sh
-source /scripts/dbt_utils.sh
-source /scripts/airflow_utils.sh
-source /scripts/postgres_utils.sh
+for util in general_utils.sh minio_utils.sh dbt_utils.sh airflow_utils.sh postgres_utils.sh; do
+  if ! source "/scripts/$util"; then
+    echo "❌ Failed to source /scripts/$util" >&2
+    exit 1
+  fi
+done
 
 ensure_var_set "POSTGRES_HOST"
 ensure_var_set "AIRFLOW_HOME"
@@ -17,9 +19,8 @@ setup_minio_wrapper() {
 }
 
 main() {
-  log_info "Running as user: $(whoami)"
+    log_info "Running as user: $(whoami)"
 
-  # Guard: check if sudo is needed (e.g., write to AIRFLOW_HOME)
   if [ ! -w "$AIRFLOW_HOME" ]; then
     log_warn "Current user lacks write permissions to $AIRFLOW_HOME"
     if command -v sudo &> /dev/null; then
@@ -27,7 +28,6 @@ main() {
     fi
   fi
 
-  # Execute each step with individual error handling
   steps=(
     setup_postgres
     setup_dbt
@@ -46,7 +46,6 @@ main() {
   log_info "✅ Airflow initialization completed successfully."
 }
 
-# Main execution
 if ! main "$@"; then
   log_error "Airflow bootstrap failed"
   exit 1
