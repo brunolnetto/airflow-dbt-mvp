@@ -1,8 +1,7 @@
 import requests
 from typing import List, Dict
 from time import sleep
-
-from spacex.config import logging
+from .config import logging
 
 def request_data(url: str) -> List[Dict]:
     # Retry logic for transient failures
@@ -29,4 +28,5 @@ def request_data(url: str) -> List[Dict]:
                 logging.error(f"❌ All {retries} attempts failed. Giving up.")
                 return []
     
-    return []  # Return empty list if all retries fail
+    # Return empty list if all retries fail
+    return []  

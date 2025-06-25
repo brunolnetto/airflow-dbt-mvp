@@ -4,6 +4,8 @@ services:
   postgres:
     image: postgres:13
     container_name: airflow-postgres
+    networks:
+      - mynetwork
     restart: unless-stopped
     env_file:
       - .env
@@ -13,7 +15,7 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h localhost"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -h 127.0.0.1"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -28,8 +30,10 @@ services:
       - 6379
     volumes:
       - redis_data:/redis
+    networks:
+      - mynetwork
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -39,6 +43,9 @@ services:
   minio:
     image: minio/minio
     container_name: airflow-minio
+    restart: unless-stopped
+    networks:
+      - mynetwork
     ports:
       - "9000:9000"
       - "9090:9090"
@@ -48,8 +55,6 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9090"
-    volumes:
-      - minio_data:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
@@ -68,16 +73,21 @@ services:
     build: .
     image: airflow-dbt:v1.0-dev
     container_name: airflow-init
+    networks:
+      - mynetwork
     env_file:
       - .env
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
       - ./dags:${AIRFLOW_HOME}/dags
       - ./dbt:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
-      - ./entrypoint.sh:/entrypoint.sh
-    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+      - ./scripts:/scripts
+    entrypoint: ["/bin/bash", "/scripts/entrypoint.sh"]
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   # 🌐 Airflow webserver service
@@ -93,6 +103,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     ports:
       - "8080:8080"
       - "8793:8793"
@@ -101,7 +112,7 @@ services:
         condition: service_healthy
       init:
         condition: service_completed_successfully
-    command: webserver --debug
+    command: ["bash", "-c", "exec airflow webserver"]
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/api/v2/version"]
       interval: 30s
@@ -120,6 +131,8 @@ services:
   worker-1:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-worker-1
+    networks:
+      - mynetwork
     command: celery worker
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
@@ -133,6 +146,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       webserver:
         condition: service_healthy
@@ -159,6 +173,8 @@ services:
   worker-2:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-worker-2
+    networks:
+      - mynetwork
     command: celery worker
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
@@ -172,6 +188,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       webserver:
         condition: service_healthy
@@ -199,6 +216,8 @@ services:
   scheduler:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-scheduler
+    networks:
+      - mynetwork
     restart: unless-stopped
     command: scheduler
     user: "${AIRFLOW_UID:-50000}:0"
@@ -208,6 +227,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -253,6 +273,8 @@ services:
   triggerer:
     image: airflow-dbt:v1.0-dev
     container_name: airflow-triggerer
+    networks:
+      - mynetwork
     command: triggerer
     user: "${AIRFLOW_UID:-50000}:0"
     restart: unless-stopped
@@ -262,6 +284,7 @@ services:
       - ./dags:${AIRFLOW_HOME}/dags
       - ./logs:${AIRFLOW_HOME}/logs
       - ./dbt:${AIRFLOW_HOME}/dbt
+      - ./.env:${AIRFLOW_HOME}/.env:ro
     depends_on:
       scheduler:
         condition: service_healthy
@@ -283,6 +306,8 @@ services:
   flower:
     image: mher/flower:latest
     container_name: airflow-flower
+    networks:
+      - mynetwork
     command: celery flower
     restart: unless-stopped
     env_file:
@@ -321,6 +346,8 @@ services:
       - .env
     restart: on-failure
     container_name: airflow-pgadmin
+    networks:
+      - mynetwork
     environment:
       - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD}
@@ -349,9 +376,10 @@ services:
     image: metabase/metabase:latest
     container_name: airflow-metabase
     hostname: metabase
-
     volumes:
       - metabase_data:/metabase3-data
+    networks:
+      - mynetwork
     env_file:
       - .env
     ports:
@@ -389,3 +417,6 @@ volumes:
   metabase_data:
   pgadmin-data:
   minio_data:
+
+networks:
+  mynetwork:

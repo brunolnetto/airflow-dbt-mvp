@@ -6,8 +6,8 @@ USER root
 
 # Install system dependencies and cleanup
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends gettext curl sudo git && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends gettext curl sudo git bash jq docker-compose-plugin && \
+    rm -rf /var/lib/apt/lists/*/
 
 # Add airflow user to sudoers with no password prompt (if it doesn't exist)
 RUN echo "airflow ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/airflow
@@ -21,6 +21,12 @@ COPY --from=ghcr.io/astral-sh/uv:0.6.13 /uv /uvx /bin/
 # Change ownership of /opt/airflow to airflow user
 RUN chown -R airflow:airflow /opt/airflow
 
+# Create group with the same GID as docker socket group
+RUN groupadd -for -g 110 docker
+
+# Add airflow user to that group
+RUN usermod -aG docker airflow
+
 # Create necessary directories for logging and set correct permissions
 RUN mkdir -p /opt/airflow/logs/scheduler && \
     chown -R airflow:airflow /opt/airflow/logs && \
@@ -33,6 +39,9 @@ RUN uv pip install --system -r requirements.txt && uv pip install --upgrade prot
 
 # Change ownership of the whole working directory to airflow user
 USER airflow
+
+ENV PYTHONPATH="/opt/airflow:${PYTHONPATH}"
+
 COPY --chown=airflow:airflow . .
 
 # Ensure proper ownership and permissions for dbt files
